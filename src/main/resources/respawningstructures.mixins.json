@@ -1,0 +1,21 @@
+{
+  "required": false,
+  "package": "com.respawningstructures.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "respawningdungeons.refmap.json",
+  "mixinPriority": 200,
+  "mixins": [
+    "ContainerDropRespawnMixin",
+    "EndPortalMixin",
+    "LevelChunkPostProcessMixin",
+    "LootTriggerMixin",
+    "NetherPortalMixin",
+    "SpawnerActiveMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  },
+  "minVersion": "0.8"
+}
