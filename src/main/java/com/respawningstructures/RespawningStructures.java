@@ -27,6 +27,8 @@ public class RespawningStructures
     public static       CupboardConfig<CommonConfiguration> config = new CupboardConfig<>(MOD_ID, new CommonConfiguration());
     public static       Random                              rand   = new Random();
 
+    // TODO: Dimension blacklist, difficulty increase option on respawn
+
     public RespawningStructures()
     {
         ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "", (a, b) -> true));

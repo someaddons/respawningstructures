@@ -23,6 +23,7 @@ public class CommonConfiguration implements ICommonConfig
       "minecraft:jungle_temple", "minecraft:mineshaft", "minecraft:ocean_monument", "minecraft:stronghold", "minecraft:woodland_mansion"));
 
     public Set<String> blacklistedStructures = new LinkedHashSet<>();
+    public Set<String> dimensionBlackList    = new LinkedHashSet<>();
 
     // Add config for: Respawn delay, respawn conditions, dungeon identifier resourcelocations /Structure blacklist
     public int     minutesUntilRespawn    = 60 * 48;
@@ -45,6 +46,17 @@ public class CommonConfiguration implements ICommonConfig
         entry7.addProperty("desc:", "Sets the time after which a structure can respawn, the timer starts after the last activity within the structure. default:2.880 minutes(48h)");
         entry7.addProperty("minutesUntilRespawn", minutesUntilRespawn);
         root.add("minutesUntilRespawn", entry7);
+
+        final JsonObject entry10 = new JsonObject();
+        entry10.addProperty("desc:",
+          "List of blacklisted dimension ids, e.g. minecraft:overworld   Seperate multiple entries by , ");
+        final JsonArray list10 = new JsonArray();
+        for (final String name : dimensionBlackList)
+        {
+            list10.add(name);
+        }
+        entry10.add("dimensionBlackList", list10);
+        root.add("dimensionBlackList", entry10);
 
 
         final JsonObject entry8 = new JsonObject();
@@ -98,6 +110,12 @@ public class CommonConfiguration implements ICommonConfig
         for (final JsonElement element : data.get("blacklistedStructures").getAsJsonObject().get("blacklistedStructures").getAsJsonArray())
         {
             blacklistedStructures.add(element.getAsString());
+        }
+
+        dimensionBlackList = new HashSet<>();
+        for (final JsonElement element : data.get("dimensionBlackList").getAsJsonObject().get("dimensionBlackList").getAsJsonArray())
+        {
+            dimensionBlackList.add(element.getAsString());
         }
 
         respawnableStructureIDs = new HashSet<>();

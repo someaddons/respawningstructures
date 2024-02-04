@@ -160,6 +160,11 @@ public class RespawnManager
      */
     public static void onLevelTick(final ServerLevel level)
     {
+        if (RespawningStructures.config.getCommonConfig().dimensionBlackList.contains(level.dimension().location().toString()))
+        {
+            return;
+        }
+
         final RespawnLevelData respawnData = level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID);
 
         for (final StructureData data : respawnData.getAllStructureData())
