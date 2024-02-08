@@ -7,22 +7,29 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.structures.NetherFortressPieces;
+import net.minecraft.world.level.levelgen.structure.structures.StrongholdPieces;
 import net.minecraft.world.phys.AABB;
 
 import java.util.List;
 
 public class RespawnManager
 {
-    public static boolean                           respawnInProgress = false;
-    public static Object2IntOpenHashMap<EntityType> entityCounts      = new Object2IntOpenHashMap<>();
+    public volatile static StructureData                     respawnInProgress = null;
+    public static          Object2IntOpenHashMap<EntityType> entityCounts      = new Object2IntOpenHashMap<>();
 
     /**
      * Gets the structure data for a given pos, does trigger updates to that data
@@ -169,9 +176,9 @@ public class RespawnManager
 
         for (final StructureData data : respawnData.getAllStructureData())
         {
-            if (data.respawn(level))
+            if (data.canRespawn(level))
             {
-                respawnData.remove(data);
+                data.respawn(level);
                 break;
             }
         }
@@ -183,16 +190,22 @@ public class RespawnManager
      * @param level
      * @param structureData
      */
-    public static void respawnStructure(final ServerLevel level, final StructureData structureData, final boolean checkLoaded)
+    public static boolean respawnStructure(final ServerLevel level, final StructureData structureData, final boolean checkLoaded)
     {
         if (structureData == null)
         {
-            return;
+            return false;
         }
 
         if (checkLoaded && !level.hasChunk(structureData.pos.x(), structureData.pos.z()))
         {
-            return;
+            return false;
+        }
+
+        final RespawnLevelData respawnData = level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID);
+        if (respawnData == null)
+        {
+            return false;
         }
 
         structureData.fillStructureStart(level);
@@ -200,11 +213,8 @@ public class RespawnManager
 
         if (!structureStart.isValid())
         {
-            return;
+            return false;
         }
-
-        RespawningStructures.LOGGER.info("Respawning structure: " + structureData.id + " at: " + structureData.pos.origin());
-
 
         long time = System.nanoTime();
         BoundingBox boundingbox = structureStart.getBoundingBox();
@@ -219,13 +229,18 @@ public class RespawnManager
                 {
                     if (!level.hasChunk(x, z))
                     {
-                        return;
+                        return false;
                     }
                 }
             }
         }
 
-        respawnInProgress = true;
+        RespawningStructures.LOGGER.info("Respawning structure: " + structureData.id + " at: " + structureData.pos.origin());
+
+        respawnInProgress = structureData;
+        structureData.respawns++;
+        respawnData.setDirty();
+
         List<Entity> entities = level.getEntitiesOfClass(Entity.class,
           new AABB(boundingbox.minX(), boundingbox.minY(), boundingbox.minZ(), boundingbox.maxX(), boundingbox.maxY(), boundingbox.maxZ()).inflate(20));
         entityCounts = new Object2IntOpenHashMap<>();
@@ -233,6 +248,19 @@ public class RespawnManager
         for (final Entity existing : entities)
         {
             entityCounts.put(existing.getType(), entityCounts.getOrDefault(existing.getType(), 0) + 1);
+        }
+
+        for (final StructurePiece piece : structureStart.getPieces())
+        {
+            if (piece instanceof NetherFortressPieces.MonsterThrone)
+            {
+                ((NetherFortressPieces.MonsterThrone) piece).hasPlacedSpawner = false;
+            }
+
+            if (piece instanceof StrongholdPieces.PortalRoom)
+            {
+                ((StrongholdPieces.PortalRoom) piece).hasPlacedSpawner = false;
+            }
         }
 
         ChunkPos.rangeClosed(chunkPosMin, chunkPosMax).forEach((chunPos) -> {
@@ -258,10 +286,10 @@ public class RespawnManager
                 + structureData.id);
         }
 
-        final RespawnLevelData respawnData = level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID);
-        respawnData.remove(structureData);
+        structureData.onRespawnReset();
+        respawnInProgress = null;
 
-        respawnInProgress = false;
+        return true;
     }
 
     /**
@@ -274,15 +302,131 @@ public class RespawnManager
      */
     public static boolean tryAddEntityDuringRespawn(final Entity entity, final ServerLevel level, final BlockPos pos)
     {
-        if (respawnInProgress)
+        if (respawnInProgress != null)
         {
             if (entityCounts.getInt(entity.getType()) > 0)
             {
                 entityCounts.put(entity.getType(), entityCounts.getInt(entity.getType()) - 1);
                 return false;
             }
+
+            if (entity instanceof Mob)
+            {
+                applyRespawnBonus((Mob) entity, respawnInProgress);
+            }
         }
 
         return true;
     }
+
+    /**
+     * Called when an entity spawns via spawner
+     *
+     * @param entity
+     */
+    public static void onSpawnerSpawn(final Mob entity)
+    {
+        final StructureData structureData = getForPos((ServerLevel) entity.level(), entity.blockPosition(), true);
+        if (structureData != null && structureData.respawns > 0)
+        {
+            applyRespawnBonus(entity, structureData);
+        }
+    }
+
+    /**
+     * Applies bonus difficulty to entities spawned within a dungeon
+     *
+     * @param entity
+     */
+    private static void applyRespawnBonus(final Mob entity, final StructureData structureData)
+    {
+        final int respawnDifficulty = Math.min(4, structureData.respawns);
+
+        for (int i = 0; i < respawnDifficulty; i++)
+        {
+            ItemStack stack = null;
+            for (final EquipmentSlot slot : EquipmentSlot.values())
+            {
+                if (slot == EquipmentSlot.OFFHAND)
+                {
+                    continue;
+                }
+
+                if (!entity.getItemBySlot(slot).isEmpty() && entity.getItemBySlot(slot).getEnchantmentTags().isEmpty())
+                {
+                    stack = entity.getItemBySlot(slot);
+                    break;
+                }
+            }
+
+            // Randomly add equipment
+            if (stack == null && RespawningStructures.rand.nextInt(10) == 0)
+            {
+                for (final EquipmentSlot slot : EquipmentSlot.values())
+                {
+                    if (entity.getItemBySlot(slot).isEmpty())
+                    {
+                        if (slot == EquipmentSlot.OFFHAND)
+                        {
+                            continue;
+                        }
+
+                        if (slot == EquipmentSlot.MAINHAND)
+                        {
+                            stack = Items.IRON_SWORD.getDefaultInstance();
+                            entity.setItemSlot(slot, stack);
+                        }
+
+                        if (slot == EquipmentSlot.CHEST)
+                        {
+                            stack = Items.IRON_CHESTPLATE.getDefaultInstance();
+                            entity.setItemSlot(slot, stack);
+                        }
+
+                        if (slot == EquipmentSlot.HEAD)
+                        {
+                            stack = Items.IRON_HELMET.getDefaultInstance();
+                            entity.setItemSlot(slot, stack);
+                        }
+
+                        if (slot == EquipmentSlot.LEGS)
+                        {
+                            stack = Items.IRON_LEGGINGS.getDefaultInstance();
+                            entity.setItemSlot(slot, stack);
+                        }
+
+                        if (slot == EquipmentSlot.FEET)
+                        {
+                            stack = Items.IRON_BOOTS.getDefaultInstance();
+                            entity.setItemSlot(slot, stack);
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            if (stack != null)
+            {
+                EnchantmentHelper.enchantItem(entity.getRandom(), stack, respawnDifficulty, true);
+            }
+            else
+            {
+                MobEffect randomEffect = randomEffects.get(RespawningStructures.rand.nextInt(randomEffects.size()));
+                if (!entity.hasEffect(randomEffect))
+                {
+                    entity.addEffect(new MobEffectInstance(randomEffect, -1));
+                }
+            }
+        }
+    }
+
+    private static List<MobEffect> randomEffects = List.of(MobEffects.DAMAGE_RESISTANCE,
+      MobEffects.FIRE_RESISTANCE,
+      MobEffects.REGENERATION,
+      MobEffects.DAMAGE_BOOST,
+      MobEffects.FIRE_RESISTANCE,
+      MobEffects.ABSORPTION,
+      MobEffects.DARKNESS,
+      MobEffects.JUMP);
 }

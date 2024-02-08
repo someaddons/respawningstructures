@@ -120,8 +120,8 @@ public class RespawnLevelData extends SavedData
             if (update)
             {
                 alreadyContainedAtPos.setLastModifiedTime(elapsedTime);
+                setDirty(true);
             }
-            setDirty(true);
             return alreadyContainedAtPos;
         }
 
@@ -286,16 +286,5 @@ public class RespawnLevelData extends SavedData
     public Set<StructureData> getAllStructureData()
     {
         return allStructureData;
-    }
-
-    public void remove(final StructureData data)
-    {
-        if (data == null)
-        {
-            return;
-        }
-
-        allStructureData.remove(data);
-        structurePositions.long2ObjectEntrySet().removeIf(entry -> entry.getValue() == data);
     }
 }

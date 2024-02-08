@@ -26,8 +26,9 @@ public class CommonConfiguration implements ICommonConfig
     public Set<String> dimensionBlackList    = new LinkedHashSet<>();
 
     // Add config for: Respawn delay, respawn conditions, dungeon identifier resourcelocations /Structure blacklist
-    public int     minutesUntilRespawn    = 60 * 48;
-    public boolean enableAutomaticRespawn = true;
+    public int     minutesUntilRespawn           = 60 * 48;
+    public boolean enableAutomaticRespawn        = true;
+    public boolean increaseDifficultyWithRespawn = true;
 
     public CommonConfiguration()
     {
@@ -46,6 +47,11 @@ public class CommonConfiguration implements ICommonConfig
         entry7.addProperty("desc:", "Sets the time after which a structure can respawn, the timer starts after the last activity within the structure. default:2.880 minutes(48h)");
         entry7.addProperty("minutesUntilRespawn", minutesUntilRespawn);
         root.add("minutesUntilRespawn", entry7);
+
+        final JsonObject entry11 = new JsonObject();
+        entry11.addProperty("desc:", "Enables increased difficulty with in respawned dungeons(mobs can get enchanted items/potions effects), default: true");
+        entry11.addProperty("increaseDifficultyWithRespawn", increaseDifficultyWithRespawn);
+        root.add("increaseDifficultyWithRespawn", entry11);
 
         final JsonObject entry10 = new JsonObject();
         entry10.addProperty("desc:",
@@ -99,6 +105,7 @@ public class CommonConfiguration implements ICommonConfig
     {
         minutesUntilRespawn = data.get("minutesUntilRespawn").getAsJsonObject().get("minutesUntilRespawn").getAsInt();
         enableAutomaticRespawn = data.get("enableAutomaticRespawn").getAsJsonObject().get("enableAutomaticRespawn").getAsBoolean();
+        increaseDifficultyWithRespawn = data.get("increaseDifficultyWithRespawn").getAsJsonObject().get("increaseDifficultyWithRespawn").getAsBoolean();
 
         dungeonChestLoottables = new HashSet<>();
         for (final JsonElement element : data.get("dungeonChestLoottables").getAsJsonObject().get("dungeonChestLoottables").getAsJsonArray())

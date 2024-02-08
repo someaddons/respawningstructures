@@ -21,7 +21,7 @@ public class ContainerDropRespawnMixin
       final ItemStack p_18997_,
       final CallbackInfo ci)
     {
-        if (RespawnManager.respawnInProgress)
+        if (RespawnManager.respawnInProgress != null)
         {
             ci.cancel();
         }

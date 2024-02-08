@@ -70,6 +70,11 @@ public class StructureData
      */
     public long lastActivity = 0;
 
+    /**
+     * Respawn counter
+     */
+    public int respawns = 0;
+
     public StructureData(final BlockPos pos, final ResourceLocation id)
     {
         this.pos = SectionPos.of(pos);
@@ -110,6 +115,7 @@ public class StructureData
         tag.putInt("blocksBroken", blocksBroken);
         tag.putInt("mobsKilled", mobsKilled);
         tag.putInt("playerDeaths", playerDeaths);
+        tag.putInt("respawns", respawns);
         tag.putLong("lastActivity", lastActivity);
 
         return tag;
@@ -132,6 +138,7 @@ public class StructureData
         blocksBroken = tag.getInt("blocksBroken");
         mobsKilled = tag.getInt("mobsKilled");
         playerDeaths = tag.getInt("playerDeaths");
+        respawns = tag.getInt("respawns");
         lastActivity = tag.getLong("lastActivity");
     }
 
@@ -175,8 +182,7 @@ public class StructureData
     {
         if (canRespawn(level))
         {
-            RespawnManager.respawnStructure(level, this, true);
-            return true;
+            return RespawnManager.respawnStructure(level, this, true);
         }
 
         return false;
@@ -200,8 +206,8 @@ public class StructureData
             return false;
         }
 
-        if ((level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID).getLevelTime() - lastActivity)
-              < RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L)
+        if (lastActivity == 0 || (level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID).getLevelTime() - lastActivity)
+                                   < RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L)
         {
             return false;
         }
@@ -211,7 +217,7 @@ public class StructureData
             return false;
         }
 
-        if (RespawningStructures.config.getCommonConfig().respawnableStructureIDs.contains(id.toString()) || checkStats())
+        if (checkStats())
         {
             return true;
         }
@@ -232,6 +238,12 @@ public class StructureData
         }
 
         if (dungeonContainerLooted > 0)
+        {
+            return true;
+        }
+
+        if (RespawningStructures.config.getCommonConfig().respawnableStructureIDs.contains(id.toString()) &&
+              (spawnerActivations + containerLooted + lightsPlaced + blocksPlaced + blocksBroken + mobsKilled + playerDeaths) > 3)
         {
             return true;
         }
@@ -274,5 +286,23 @@ public class StructureData
         final Vec3i length = structureStart.getBoundingBox().getLength();
         bbSize = length.getX() * length.getY() * length.getZ();
         this.structureStart = structureStart;
+    }
+
+    /**
+     * Triggered on respawning, clears stats and increases respawn counter
+     */
+    public void onRespawnReset()
+    {
+        spawnerActivations = 0;
+        spawnerBreak = 0;
+        containerLooted = 0;
+        dungeonContainerLooted = 0;
+        lightsPlaced = 0;
+        blocksPlaced = 0;
+        blocksBroken = 0;
+        mobsKilled = 0;
+        playerDeaths = 0;
+        portalUsage = 0;
+        lastActivity = 0;
     }
 }
