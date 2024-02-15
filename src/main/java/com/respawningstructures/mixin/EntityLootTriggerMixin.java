@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ContainerEntity.class)
-public abstract class EntityLootTriggerMixin
+public abstract interface EntityLootTriggerMixin
 {
     @Shadow
     public abstract ResourceLocation getLootTable();
