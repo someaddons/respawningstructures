@@ -61,7 +61,8 @@ public class EventHandler
 
                 for (final ServerLevel level : event.getServer().getAllLevels())
                 {
-                    final RespawnLevelData data = level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID);
+                    final RespawnLevelData data = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+                    ;
                     if (data != null)
                     {
                         data.increaseTime(60 * 5);
@@ -117,7 +118,7 @@ public class EventHandler
     {
         if (!event.getLevel().isClientSide())
         {
-            ((ServerLevel) event.getLevel()).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+            // ((ServerLevel) event.getLevel()).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
         }
     }
 

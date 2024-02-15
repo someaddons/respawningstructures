@@ -15,9 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import javax.annotation.Nullable;
 
 @Mixin(ContainerEntity.class)
-public abstract class EntityLootTriggerMixin
+public abstract interface EntityLootTriggerMixin
 {
-
     @Shadow
     @Nullable
     public abstract ResourceLocation getLootTable();

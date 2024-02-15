@@ -206,7 +206,7 @@ public class StructureData
             return false;
         }
 
-        if (lastActivity == 0 || (level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID).getLevelTime() - lastActivity)
+        if (lastActivity == 0 || (level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID).getLevelTime() - lastActivity)
                                    < RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L)
         {
             return false;
