@@ -2,17 +2,17 @@ package com.respawningstructures.event;
 
 import com.respawningstructures.structure.RespawnLevelData;
 import com.respawningstructures.structure.RespawnManager;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.MobSpawnEvent;
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Calendar;
 
@@ -44,10 +44,9 @@ public class EventHandler
 
     private static long lastTime = 0;
 
-    @SubscribeEvent
-    public static void onServerTick(final TickEvent.ServerTickEvent event)
+    public static void onServerTick(final MinecraftServer server)
     {
-        if (event.getServer().getTickCount() % 100 == 35)
+        if (server.getTickCount() % 100 == 35)
         {
             if (lastTime == 0)
             {
@@ -55,13 +54,13 @@ public class EventHandler
                 return;
             }
 
-            if (event.getServer().getPlayerCount() > 0 && (Calendar.getInstance().getTimeInMillis() - lastTime) > 60 * 5 * 1000)
+            if (server.getPlayerCount() > 0 && (Calendar.getInstance().getTimeInMillis() - lastTime) > 60 * 5 * 1000)
             {
                 lastTime = Calendar.getInstance().getTimeInMillis();
 
-                for (final ServerLevel level : event.getServer().getAllLevels())
+                for (final ServerLevel level : server.getAllLevels())
                 {
-                    final RespawnLevelData data = level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID);
+                    final RespawnLevelData data = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
                     if (data != null)
                     {
                         data.increaseTime(60 * 5);
@@ -71,84 +70,67 @@ public class EventHandler
         }
     }
 
-    @SubscribeEvent
-    public static void onLevelTick(final TickEvent.LevelTickEvent event)
+    public static void onLevelTick(final ServerLevel level)
     {
-        if (event.phase == TickEvent.Phase.END && !event.level.isClientSide && event.level.getGameTime() % 1000 == 17)
+        if (!level.isClientSide && level.getGameTime() % 1000 == 17)
         {
-            RespawnManager.onLevelTick((ServerLevel) event.level);
+            RespawnManager.onLevelTick(level);
         }
     }
 
-    @SubscribeEvent
-    public static void onBlockBreak(BlockEvent.BreakEvent event)
+    public static void onBlockBreak(final ServerPlayer player, final BlockPos pos)
     {
-        if (event.getPlayer() instanceof ServerPlayer)
+        final BlockState state = player.level().getBlockState(pos);
+        if (state.hasBlockEntity() && player.level().getBlockEntity(pos) instanceof SpawnerBlockEntity)
         {
-            if (event.getState().hasBlockEntity() && event.getLevel().getBlockEntity(event.getPos()) instanceof SpawnerBlockEntity)
-            {
-                RespawnManager.onSpawnerKilled((SpawnerBlockEntity) event.getLevel().getBlockEntity(event.getPos()));
-            }
-            else
-            {
-                RespawnManager.onBlockBreak((ServerPlayer) event.getPlayer(), event.getPos());
-            }
+            RespawnManager.onSpawnerKilled((SpawnerBlockEntity) player.level().getBlockEntity(pos));
+        }
+        else
+        {
+            RespawnManager.onBlockBreak(player, pos);
         }
     }
 
-    @SubscribeEvent
-    public static void onBlockPlaced(BlockEvent.EntityPlaceEvent event)
+    public static void onBlockPlaced(final ServerPlayer serverPlayer, final BlockPos blockPos, final BlockState state)
     {
-        if (event.getEntity() instanceof ServerPlayer)
+        if (state.getLightEmission() > 0)
         {
-            if (event.getState().getLightEmission() > 0)
-            {
-                RespawnManager.onLightPlaced((ServerPlayer) event.getEntity(), event.getPos());
-            }
-            else
-            {
-                RespawnManager.onBlockPlaced((ServerPlayer) event.getEntity(), event.getPos());
-            }
+            RespawnManager.onLightPlaced(serverPlayer, blockPos);
+        }
+        else
+        {
+            RespawnManager.onBlockPlaced(serverPlayer, blockPos);
         }
     }
 
-    @SubscribeEvent
-    public static void onLevelLoad(final LevelEvent.Load event)
+    public static void onMobKilled(final LivingEntity entity, final DamageSource damageSource)
     {
-        if (!event.getLevel().isClientSide())
+        if (!entity.level().isClientSide() && damageSource.getEntity() instanceof ServerPlayer)
         {
-            ((ServerLevel) event.getLevel()).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+            RespawnManager.onMobKilled(entity);
+        }
+        else if (entity instanceof ServerPlayer)
+        {
+            RespawnManager.onPlayerDeath((ServerPlayer) entity);
         }
     }
 
-    @SubscribeEvent
-    public static void onMobKilled(final LivingDeathEvent event)
+    public static boolean onEntityAdded(final Entity entity)
     {
-        if (!event.getEntity().level().isClientSide() && event.getSource().getEntity() instanceof ServerPlayer)
+        if (!entity.level().isClientSide && !RespawnManager.tryAddEntityDuringRespawn(entity, (ServerLevel) entity.level(), entity.blockPosition()))
         {
-            RespawnManager.onMobKilled(event.getEntity());
+            entity.setRemoved(Entity.RemovalReason.DISCARDED);
+            return false;
         }
-        else if (event.getEntity() instanceof ServerPlayer)
-        {
-            RespawnManager.onPlayerDeath((ServerPlayer) event.getEntity());
-        }
+
+        return true;
     }
 
-    @SubscribeEvent
-    public static void onEntityAdded(final EntityJoinLevelEvent event)
+    public static void onEntitySpawned(final Entity entity, final MobSpawnType type)
     {
-        if (!event.getLevel().isClientSide && !RespawnManager.tryAddEntityDuringRespawn(event.getEntity(), (ServerLevel) event.getLevel(), event.getEntity().blockPosition()))
+        if (!entity.level().isClientSide() && type == MobSpawnType.SPAWNER && entity instanceof Mob)
         {
-            event.setCanceled(true);
-        }
-    }
-
-    @SubscribeEvent
-    public static void onEntityAdded(final MobSpawnEvent.FinalizeSpawn event)
-    {
-        if (!event.getLevel().isClientSide() && event.getSpawnType() == MobSpawnType.SPAWNER && event.getEntity() != null)
-        {
-            RespawnManager.onSpawnerSpawn(event.getEntity());
+            RespawnManager.onSpawnerSpawn((Mob) entity);
         }
     }
 }

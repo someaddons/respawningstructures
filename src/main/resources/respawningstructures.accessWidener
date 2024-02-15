@@ -1,0 +1,10 @@
+accessWidener   v2  named
+accessible field net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces$MonsterThrone hasPlacedSpawner Z
+accessible field net/minecraft/world/level/levelgen/structure/structures/StrongholdPieces$PortalRoom hasPlacedSpawner Z
+accessible field net/minecraft/world/level/levelgen/structure/structures/StrongholdPieces$ChestCorridor hasPlacedChest Z
+accessible field net/minecraft/world/level/levelgen/structure/structures/MineshaftPieces$MineShaftCorridor hasPlacedSpider Z
+accessible field net/minecraft/world/level/levelgen/structure/structures/DesertPyramidPiece hasPlacedChest [Z
+accessible field net/minecraft/world/level/levelgen/structure/structures/JungleTemplePiece placedMainChest Z
+accessible field net/minecraft/world/level/levelgen/structure/structures/JungleTemplePiece placedHiddenChest Z
+accessible field net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces$CastleSmallCorridorLeftTurnPiece isNeedingChest Z
+accessible field net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces$CastleSmallCorridorRightTurnPiece isNeedingChest Z

@@ -16,13 +16,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import javax.annotation.Nullable;
-
 @Mixin(RandomizableContainerBlockEntity.class)
 public abstract class LootTriggerMixin extends BaseContainerBlockEntity
 {
     @Shadow
-    @Nullable
     protected ResourceLocation lootTable;
 
     protected LootTriggerMixin(

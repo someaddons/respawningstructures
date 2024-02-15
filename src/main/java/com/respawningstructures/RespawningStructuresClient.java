@@ -1,13 +1,15 @@
 package com.respawningstructures;
 
-import com.respawningstructures.event.ClientEventHandler;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
-public class RespawningStructuresClient
+@Environment(EnvType.CLIENT)
+public class RespawningStructuresClient implements ClientModInitializer
 {
-    public static void onInitializeClient(final FMLClientSetupEvent event)
+    @Override
+    public void onInitializeClient()
     {
-        Mod.EventBusSubscriber.Bus.FORGE.bus().get().register(ClientEventHandler.class);
+
     }
 }

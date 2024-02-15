@@ -15,13 +15,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.minecraft.world.level.levelgen.structure.structures.NetherFortressPieces;
-import net.minecraft.world.level.levelgen.structure.structures.StrongholdPieces;
+import net.minecraft.world.level.levelgen.structure.structures.*;
 import net.minecraft.world.phys.AABB;
 
 import java.util.List;
@@ -36,7 +34,7 @@ public class RespawnManager
      */
     public static StructureData getForPos(final ServerLevel level, final BlockPos pos, final boolean update)
     {
-        final RespawnLevelData respawnData = level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID);
+        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
         return respawnData.getForPos(level, pos, update);
     }
 
@@ -58,15 +56,12 @@ public class RespawnManager
     /**
      * Triggers when a spawner is activated by a nearby player
      */
-    public static void onSpawnerActive(final BlockEntity entity)
+    public static void onSpawnerActive(final ServerLevel level, final BlockPos pos)
     {
-        if (entity.hasLevel() && !entity.getLevel().isClientSide())
+        final StructureData structureData = getForPos(level, pos, true);
+        if (structureData != null)
         {
-            final StructureData structureData = getForPos((ServerLevel) entity.getLevel(), entity.getBlockPos(), true);
-            if (structureData != null)
-            {
-                structureData.spawnerActivations++;
-            }
+            structureData.spawnerActivations++;
         }
     }
 
@@ -172,7 +167,7 @@ public class RespawnManager
             return;
         }
 
-        final RespawnLevelData respawnData = level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID);
+        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
 
         for (final StructureData data : respawnData.getAllStructureData())
         {
@@ -202,7 +197,7 @@ public class RespawnManager
             return false;
         }
 
-        final RespawnLevelData respawnData = level.getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID);
+        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
         if (respawnData == null)
         {
             return false;
@@ -260,6 +255,40 @@ public class RespawnManager
             if (piece instanceof StrongholdPieces.PortalRoom)
             {
                 ((StrongholdPieces.PortalRoom) piece).hasPlacedSpawner = false;
+            }
+
+            if (piece instanceof StrongholdPieces.ChestCorridor)
+            {
+                ((StrongholdPieces.ChestCorridor) piece).hasPlacedChest = false;
+            }
+
+            if (piece instanceof MineshaftPieces.MineShaftCorridor)
+            {
+                ((MineshaftPieces.MineShaftCorridor) piece).hasPlacedSpider = false;
+            }
+
+            if (piece instanceof DesertPyramidPiece)
+            {
+                ((DesertPyramidPiece) piece).hasPlacedChest[0] = false;
+                ((DesertPyramidPiece) piece).hasPlacedChest[1] = false;
+                ((DesertPyramidPiece) piece).hasPlacedChest[2] = false;
+                ((DesertPyramidPiece) piece).hasPlacedChest[3] = false;
+            }
+
+            if (piece instanceof JungleTemplePiece)
+            {
+                ((JungleTemplePiece) piece).placedMainChest = false;
+                ((JungleTemplePiece) piece).placedHiddenChest = false;
+            }
+
+            if (piece instanceof NetherFortressPieces.CastleSmallCorridorLeftTurnPiece)
+            {
+                ((NetherFortressPieces.CastleSmallCorridorLeftTurnPiece) piece).isNeedingChest = RespawningStructures.rand.nextInt(3) == 0;
+            }
+
+            if (piece instanceof NetherFortressPieces.CastleSmallCorridorRightTurnPiece)
+            {
+                ((NetherFortressPieces.CastleSmallCorridorRightTurnPiece) piece).isNeedingChest = RespawningStructures.rand.nextInt(3) == 0;
             }
         }
 

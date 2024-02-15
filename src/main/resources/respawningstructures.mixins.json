@@ -2,15 +2,21 @@
   "required": false,
   "package": "com.respawningstructures.mixin",
   "compatibilityLevel": "JAVA_17",
-  "refmap": "respawningdungeons.refmap.json",
   "mixinPriority": 200,
   "mixins": [
+    "AddEntityEvent",
+    "BlockPlacedMixin",
     "ContainerDropRespawnMixin",
     "EndPortalMixin",
+    "EntityLootTriggerMixin",
     "LevelChunkPostProcessMixin",
+    "LivingDeathEvent",
     "LootTriggerMixin",
     "NetherPortalMixin",
-    "SpawnerActiveMixin"
+    "PlayerBlockBreakMixin",
+    "ServerPlayerDeathMixin",
+    "SpawnerActiveMixin",
+    "SpawnerSpawnMixin"
   ],
   "client": [
   ],

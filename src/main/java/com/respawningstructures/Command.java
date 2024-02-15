@@ -176,7 +176,8 @@ public class Command
                                            .getZ()))
                           )));
                     RespawnManager.getForPos(world, sortedStructures.get(0).getValue().getBoundingBox().getCenter(), false).disabledRespawn = !shouldRespawn;
-                    final RespawnLevelData respawnData = context.getSource().getLevel().getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID);
+                    final RespawnLevelData respawnData =
+                      context.getSource().getLevel().getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
                     if (respawnData != null)
                     {
                         respawnData.setDirty();
@@ -319,7 +320,8 @@ public class Command
 
                     int minutes_remaining = Math.max(0,
                       (int) (1 / 60d * (RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L - (
-                        context.getSource().getLevel().getDataStorage().get(RespawnLevelData::load, RespawnLevelData.ID).getLevelTime() - data.lastActivity))));
+                        context.getSource().getLevel().getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID).getLevelTime()
+                          - data.lastActivity))));
 
                     context.getSource()
                       .sendSystemMessage(Component.literal("Remaining minutes until respawn: " + minutes_remaining)
