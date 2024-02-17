@@ -15,7 +15,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
@@ -58,15 +57,12 @@ public class RespawnManager
     /**
      * Triggers when a spawner is activated by a nearby player
      */
-    public static void onSpawnerActive(final BlockEntity entity)
+    public static void onSpawnerActive(final ServerLevel level, final BlockPos pos)
     {
-        if (entity.hasLevel() && !entity.getLevel().isClientSide())
+        final StructureData structureData = getForPos(level, pos, true);
+        if (structureData != null)
         {
-            final StructureData structureData = getForPos((ServerLevel) entity.getLevel(), entity.getBlockPos(), true);
-            if (structureData != null)
-            {
-                structureData.spawnerActivations++;
-            }
+            structureData.spawnerActivations++;
         }
     }
 
