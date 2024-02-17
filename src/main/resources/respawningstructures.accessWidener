@@ -8,3 +8,4 @@ accessible field net/minecraft/world/level/levelgen/structure/structures/JungleT
 accessible field net/minecraft/world/level/levelgen/structure/structures/JungleTemplePiece placedHiddenChest Z
 accessible field net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces$CastleSmallCorridorLeftTurnPiece isNeedingChest Z
 accessible field net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces$CastleSmallCorridorRightTurnPiece isNeedingChest Z
+accessible field net/minecraft/world/level/block/entity/RandomizableContainerBlockEntity lootTable Lnet/minecraft/resources/ResourceLocation;
