@@ -247,6 +247,25 @@ public class RespawnManager
 
         for (final StructurePiece piece : structureStart.getPieces())
         {
+            if (checkLoaded)
+            {
+                if (!boundingbox.isInside(piece.getBoundingBox().maxX(), piece.getBoundingBox().maxY(), piece.getBoundingBox().maxZ()))
+                {
+                    if (!level.hasChunk(piece.getBoundingBox().maxX() >> 4, piece.getBoundingBox().maxZ() >> 4))
+                    {
+                        return false;
+                    }
+                }
+
+                if (!boundingbox.isInside(piece.getBoundingBox().minX(), piece.getBoundingBox().minY(), piece.getBoundingBox().minZ()))
+                {
+                    if (!level.hasChunk(piece.getBoundingBox().minX() >> 4, piece.getBoundingBox().minZ() >> 4))
+                    {
+                        return false;
+                    }
+                }
+            }
+
             if (piece instanceof NetherFortressPieces.MonsterThrone)
             {
                 ((NetherFortressPieces.MonsterThrone) piece).hasPlacedSpawner = false;
