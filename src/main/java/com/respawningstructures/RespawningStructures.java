@@ -19,8 +19,6 @@ public class RespawningStructures implements ModInitializer
     public static       CupboardConfig<CommonConfiguration> config = new CupboardConfig<>(MOD_ID, new CommonConfiguration());
     public static       Random                              rand   = new Random();
 
-    // TODO: Dimension blacklist, difficulty increase option on respawn
-
     public RespawningStructures()
     {
 

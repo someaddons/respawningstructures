@@ -388,6 +388,11 @@ public class RespawnManager
      */
     private static void applyRespawnBonus(final Mob entity, final StructureData structureData)
     {
+        if (!RespawningStructures.config.getCommonConfig().increaseDifficultyWithRespawn)
+        {
+            return;
+        }
+
         final int respawnDifficulty = Math.min(4, structureData.respawns);
 
         for (int i = 0; i < respawnDifficulty; i++)
