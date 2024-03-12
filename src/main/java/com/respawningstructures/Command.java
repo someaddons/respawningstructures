@@ -250,7 +250,7 @@ public class Command
 
                       context.getSource()
                         .sendSystemMessage(Component.literal("" + data.id)
-                          .append(Component.literal(" at: {" + sortedStructures.get(0).getKey().toShortString() + "}").withStyle(ChatFormatting.YELLOW)
+                          .append(Component.literal(" at: {" + entry.getKey().toShortString() + "}").withStyle(ChatFormatting.YELLOW)
                             .withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
                               "/tp " + entry.getKey().getX() + " " + entry.getKey().getY() + " " + entry.getKey().getZ()))
                             )

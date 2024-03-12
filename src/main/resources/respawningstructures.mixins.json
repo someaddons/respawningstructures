@@ -6,6 +6,7 @@
   "mixins": [
     "AddEntityEvent",
     "BlockPlacedMixin",
+    "ChunkSetStartBBFix",
     "ContainerDropRespawnMixin",
     "EndPortalMixin",
     "EntityLootTriggerMixin",
@@ -16,7 +17,8 @@
     "PlayerBlockBreakMixin",
     "ServerPlayerDeathMixin",
     "SpawnerActiveMixin",
-    "SpawnerSpawnMixin"
+    "SpawnerSpawnMixin",
+    "StructureStartBBFixMixin"
   ],
   "client": [
   ],

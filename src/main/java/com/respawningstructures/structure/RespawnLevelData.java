@@ -13,6 +13,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.saveddata.SavedData;
 
@@ -243,11 +244,24 @@ public class RespawnLevelData extends SavedData
             level.structureManager().fillStartsForStructure(structureEntry.getKey(), structureEntry.getValue(),
               structureStart ->
               {
-                  if (structureStart.getBoundingBox().inflatedBy(20).isInside(pos))
+                  if (pos.equals(structureStart.getBoundingBox().getCenter()))
                   {
                       if (closest[0] == null || closest[0].getBoundingBox().getCenter().distSqr(pos) > structureStart.getBoundingBox().getCenter().distSqr(pos))
                       {
                           closest[0] = structureStart;
+                      }
+                  }
+
+                  for (final StructurePiece piece : structureStart.getPieces())
+                  {
+                      if (piece != null && piece.getBoundingBox().isInside(pos))
+                      {
+                          if (closest[0] == null || closest[0].getBoundingBox().getCenter().distSqr(pos) > structureStart.getBoundingBox().getCenter().distSqr(pos))
+                          {
+                              closest[0] = structureStart;
+                          }
+
+                          break;
                       }
                   }
               }
