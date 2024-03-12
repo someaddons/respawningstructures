@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Map;
 
 @Mixin(ChunkAccess.class)
-public class ChunkSetStartBBFix
+public abstract class ChunkSetStartBBFix
 {
     @Inject(method = "setAllStarts", at = @At("RETURN"))
     private void on(final Map<Structure, StructureStart> data, final CallbackInfo ci)

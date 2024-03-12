@@ -2,7 +2,7 @@
   "required": false,
   "package": "com.respawningstructures.mixin",
   "compatibilityLevel": "JAVA_17",
-  "refmap": "respawningdungeons.refmap.json",
+  "refmap": "respawningstructures.refmap.json",
   "mixinPriority": 200,
   "mixins": [
     "ChunkSetStartBBFix",
