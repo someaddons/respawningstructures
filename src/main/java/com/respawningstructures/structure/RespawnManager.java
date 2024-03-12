@@ -219,15 +219,27 @@ public class RespawnManager
 
         if (checkLoaded)
         {
+            int loaded = 0;
+            int unloaded = 0;
+
             for (int x = chunkPosMin.x; x <= chunkPosMax.x; x++)
             {
                 for (int z = chunkPosMax.z; z <= chunkPosMax.z; z++)
                 {
                     if (!level.hasChunk(x, z))
                     {
-                        return false;
+                        unloaded++;
+                    }
+                    else
+                    {
+                        loaded++;
                     }
                 }
+            }
+
+            if (loaded + unloaded > 0 && unloaded / (double) (loaded + unloaded) > 0.3)
+            {
+                return false;
             }
         }
 

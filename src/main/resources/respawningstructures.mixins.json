@@ -5,13 +5,15 @@
   "refmap": "respawningdungeons.refmap.json",
   "mixinPriority": 200,
   "mixins": [
+    "ChunkSetStartBBFix",
     "ContainerDropRespawnMixin",
     "EndPortalMixin",
     "EntityLootTriggerMixin",
     "LevelChunkPostProcessMixin",
     "LootTriggerMixin",
     "NetherPortalMixin",
-    "SpawnerActiveMixin"
+    "SpawnerActiveMixin",
+    "StructureStartBBFixMixin"
   ],
   "client": [
   ],
