@@ -1,18 +1,24 @@
 package com.respawningstructures.event;
 
+import com.respawningstructures.RespawningStructures;
 import com.respawningstructures.structure.RespawnLevelData;
 import com.respawningstructures.structure.RespawnManager;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import java.util.Calendar;
 
@@ -42,6 +48,7 @@ public class EventHandler
      * Spawn additional or replace mobs during respawn(mark persistent)
      */
 
+    private final static TagKey<Block> REDSTONE = TagKey.create(Registries.BLOCK, new ResourceLocation(RespawningStructures.MOD_ID, "redstone"));
     private static long lastTime = 0;
 
     public static void onServerTick(final MinecraftServer server)
@@ -85,6 +92,10 @@ public class EventHandler
         {
             RespawnManager.onSpawnerKilled((SpawnerBlockEntity) player.level().getBlockEntity(pos));
         }
+        else if (state.hasProperty(BlockStateProperties.POWER) || state.is(REDSTONE))
+        {
+            RespawnManager.onRedstoneDestroyed(player, pos);
+        }
         else
         {
             RespawnManager.onBlockBreak(player, pos);
@@ -96,6 +107,10 @@ public class EventHandler
         if (state.getLightEmission() > 0)
         {
             RespawnManager.onLightPlaced(serverPlayer, blockPos);
+        }
+        else if (state.hasProperty(BlockStateProperties.POWER) || state.is(REDSTONE))
+        {
+            RespawnManager.onRedstonePlaced(serverPlayer, blockPos);
         }
         else
         {

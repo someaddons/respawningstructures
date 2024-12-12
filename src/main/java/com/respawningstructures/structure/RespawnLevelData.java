@@ -1,6 +1,5 @@
 package com.respawningstructures.structure;
 
-import com.respawningstructures.RespawningStructures;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -84,8 +83,6 @@ public class RespawnLevelData extends SavedData
         }
 
         nbt.put("Structures", list);
-
-        setDirty(false);
         return nbt;
     }
 
@@ -134,6 +131,7 @@ public class RespawnLevelData extends SavedData
             return null;
         }
 
+        /*
         final boolean[] found = new boolean[1];
         for (final Map.Entry<Structure, LongSet> entry : level.structureManager()
           .getAllStructuresAt(structureStart.getBoundingBox().getCenter())
@@ -152,7 +150,7 @@ public class RespawnLevelData extends SavedData
         if (!found[0])
         {
             RespawningStructures.LOGGER.warn("Bad structure start!");
-        }
+        }*/
 
         final StructureData data = structurePositions.computeIfAbsent(SectionPos.asLong(structureStart.getBoundingBox().getCenter()), (p) -> {
             StructureData newData = new StructureData(structureStart.getBoundingBox().getCenter(),

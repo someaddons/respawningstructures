@@ -1,0 +1,13 @@
+{
+  "values": [
+    "minecraft:repeater",
+    "minecraft:comparator",
+    "minecraft:redstone_wire",
+    "minecraft:observer",
+    "minecraft:hopper",
+    "#minecraft:trapdoors",
+    "minecraft:dispenser",
+    "minecraft:piston",
+    "minecraft:sticky_piston"
+  ]
+}

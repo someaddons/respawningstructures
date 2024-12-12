@@ -19,14 +19,15 @@ public class CommonConfiguration implements ICommonConfig
       "chests/stronghold_crossing", "chests/stronghold_library", "chests/woodland_mansion"));
 
     public Set<String>
-      respawnableStructureIDs = new LinkedHashSet<>(Lists.newArrayList("minecraft:desert_pyramid", "minecraft:end_city", "minecraft:fortress", "minecraft:igloo",
-      "minecraft:jungle_temple", "minecraft:mineshaft", "minecraft:ocean_monument", "minecraft:stronghold", "minecraft:woodland_mansion"));
+        respawnableStructureIDs = new LinkedHashSet<>(Lists.newArrayList());
 
+    public boolean whitelist = false;
     public Set<String> blacklistedStructures = new LinkedHashSet<>();
+
     public Set<String> dimensionBlackList    = new LinkedHashSet<>();
 
-    // Add config for: Respawn delay, respawn conditions, dungeon identifier resourcelocations /Structure blacklist
     public int     minutesUntilRespawn           = 60 * 48;
+    public double blockCountMod = 1.0;
     public boolean enableAutomaticRespawn        = true;
     public boolean increaseDifficultyWithRespawn = true;
 
@@ -44,18 +45,25 @@ public class CommonConfiguration implements ICommonConfig
         root.add("enableAutomaticRespawn", entry);
 
         final JsonObject entry7 = new JsonObject();
-        entry7.addProperty("desc:", "Sets the time after which a structure can respawn, the timer starts after the last activity within the structure. default:2.880 minutes(48h)");
+        entry7.addProperty("desc:", "Sets the time after which a structure can respawn, the timer starts after the last activity within the structure. default:2880 minutes(48h)");
         entry7.addProperty("minutesUntilRespawn", minutesUntilRespawn);
         root.add("minutesUntilRespawn", entry7);
 
         final JsonObject entry11 = new JsonObject();
-        entry11.addProperty("desc:", "Enables increased difficulty with in respawned dungeons(mobs can get enchanted items/potions effects), default: true");
+        entry11.addProperty("desc:", "Enables increased difficulty for mobs in respawned dungeons(mobs can get enchanted items/potions effects), default: true");
         entry11.addProperty("increaseDifficultyWithRespawn", increaseDifficultyWithRespawn);
         root.add("increaseDifficultyWithRespawn", entry11);
 
+        final JsonObject entry8 = new JsonObject();
+        entry8.addProperty("desc:",
+            "Modifies the placed/broken block count, which can prevent respawn. Setting it to zero means respawn will ignore placed/broken blocks. Setting it higher than 1.0 makes it more likely that players breaking/placing things in the structure will prevent its respawn."
+                + "By default it blocks respawn after 200+(scales slightly with structure size) blocks placed/broken. default: 1.0");
+        entry8.addProperty("blockCountMod", blockCountMod);
+        root.add("blockCountMod", entry8);
+
         final JsonObject entry10 = new JsonObject();
         entry10.addProperty("desc:",
-          "List of blacklisted dimension ids, e.g. minecraft:overworld   Seperate multiple entries by , ");
+            "List of blacklisted dimension ids, e.g. minecraft:overworld  Seperate multiple entries by , ");
         final JsonArray list10 = new JsonArray();
         for (final String name : dimensionBlackList)
         {
@@ -65,16 +73,16 @@ public class CommonConfiguration implements ICommonConfig
         root.add("dimensionBlackList", entry10);
 
 
-        final JsonObject entry8 = new JsonObject();
-        entry8.addProperty("desc:",
-          "List of structure IDs that should respawn (others may still be detected and respawn, but this is the surefire way): e.g. minecraft:mansion");
+        final JsonObject entry12 = new JsonObject();
+        entry12.addProperty("desc:",
+            "List of structure IDs that should respawn always respawn, no matter if a player build sth inside, has a portal there etc.: e.g. minecraft:mansion");
         final JsonArray list8 = new JsonArray();
         for (final String name : respawnableStructureIDs)
         {
             list8.add(name);
         }
-        entry8.add("respawnableStructureIDs", list8);
-        root.add("respawnableStructureIDs", entry8);
+        entry12.add("respawnableStructures", list8);
+        root.add("respawnableStructures", entry12);
 
         final JsonObject entry6 = new JsonObject();
         entry6.addProperty("desc:",
@@ -87,16 +95,10 @@ public class CommonConfiguration implements ICommonConfig
         entry6.add("blacklistedStructures", list6);
         root.add("blacklistedStructures", entry6);
 
-        final JsonObject entry5 = new JsonObject();
-        entry5.addProperty("desc:",
-          "List of loot tables of chests considered to be dungeon loot, partially used for detecting dungeons. Adding additional modded ones improves detection");
-        final JsonArray list5 = new JsonArray();
-        for (final String name : dungeonChestLoottables)
-        {
-            list5.add(name);
-        }
-        entry5.add("dungeonChestLoottables", list5);
-        root.add("dungeonChestLoottables", entry5);
+        final JsonObject entry14 = new JsonObject();
+        entry14.addProperty("desc:", "Changes the structure blacklist to a whitelist, default: false");
+        entry14.addProperty("whitelist", whitelist);
+        root.add("whitelist", entry14);
 
         return root;
     }
@@ -106,12 +108,7 @@ public class CommonConfiguration implements ICommonConfig
         minutesUntilRespawn = data.get("minutesUntilRespawn").getAsJsonObject().get("minutesUntilRespawn").getAsInt();
         enableAutomaticRespawn = data.get("enableAutomaticRespawn").getAsJsonObject().get("enableAutomaticRespawn").getAsBoolean();
         increaseDifficultyWithRespawn = data.get("increaseDifficultyWithRespawn").getAsJsonObject().get("increaseDifficultyWithRespawn").getAsBoolean();
-
-        dungeonChestLoottables = new HashSet<>();
-        for (final JsonElement element : data.get("dungeonChestLoottables").getAsJsonObject().get("dungeonChestLoottables").getAsJsonArray())
-        {
-            dungeonChestLoottables.add(element.getAsString());
-        }
+        blockCountMod = data.get("blockCountMod").getAsJsonObject().get("blockCountMod").getAsDouble();
 
         blacklistedStructures = new HashSet<>();
         for (final JsonElement element : data.get("blacklistedStructures").getAsJsonObject().get("blacklistedStructures").getAsJsonArray())
@@ -126,7 +123,7 @@ public class CommonConfiguration implements ICommonConfig
         }
 
         respawnableStructureIDs = new HashSet<>();
-        for (final JsonElement element : data.get("respawnableStructureIDs").getAsJsonObject().get("respawnableStructureIDs").getAsJsonArray())
+        for (final JsonElement element : data.get("respawnableStructures").getAsJsonObject().get("respawnableStructures").getAsJsonArray())
         {
             respawnableStructureIDs.add(element.getAsString());
         }

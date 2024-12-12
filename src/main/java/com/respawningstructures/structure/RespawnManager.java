@@ -3,26 +3,37 @@ package com.respawningstructures.structure;
 import com.respawningstructures.RespawningStructures;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.core.SectionPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.StructureTags;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 import net.minecraft.world.level.levelgen.structure.structures.*;
 import net.minecraft.world.phys.AABB;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 public class RespawnManager
 {
@@ -123,6 +134,33 @@ public class RespawnManager
     }
 
     /**
+     * On redstone placement
+     */
+    public static void onRedstonePlaced(final ServerPlayer player, final BlockPos pos)
+    {
+        final StructureData structureData = getForPos((ServerLevel) player.level(), pos, true);
+        if (structureData != null)
+        {
+            structureData.redstonePlaced++;
+        }
+    }
+
+    /**
+     * On redstone break
+     *
+     * @param player
+     * @param pos
+     */
+    public static void onRedstoneDestroyed(final ServerPlayer player, final BlockPos pos)
+    {
+        final StructureData structureData = getForPos((ServerLevel) player.level(), pos, true);
+        if (structureData != null)
+        {
+            structureData.redstonePlaced = Math.max(0, structureData.redstonePlaced - 1);
+        }
+    }
+
+    /**
      * On Block placement
      */
     public static void onBlockPlaced(final ServerPlayer player, final BlockPos pos)
@@ -171,10 +209,12 @@ public class RespawnManager
 
         for (final StructureData data : respawnData.getAllStructureData())
         {
-            if (data.canRespawn(level))
+            if (data.canRespawn(level) == StructureData.RespawnStatus.PENDING_RESPAWN)
             {
-                data.respawn(level);
-                break;
+                if (data.respawn(level))
+                {
+                    break;
+                }
             }
         }
     }
@@ -204,9 +244,9 @@ public class RespawnManager
         }
 
         structureData.fillStructureStart(level);
-        final StructureStart structureStart = structureData.getStructureStart();
+        StructureStart structureStart = structureData.getStructureStart();
 
-        if (!structureStart.isValid())
+        if (structureStart == null || !structureStart.isValid())
         {
             return false;
         }
@@ -245,7 +285,6 @@ public class RespawnManager
         RespawningStructures.LOGGER.info("Respawning structure: " + structureData.id + " at: " + structureData.pos.origin());
 
         respawnInProgress = structureData;
-        structureData.respawns++;
         respawnData.setDirty();
 
         List<Entity> entities = level.getEntitiesOfClass(Entity.class,
@@ -323,8 +362,43 @@ public class RespawnManager
             }
         }
 
+        Registry<Structure> structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        Optional<Holder.Reference<Structure>> holder = structureRegistry.getHolder(structureRegistry.getId(structureStart.getStructure()));
+        if (holder.isPresent() && holder.get().is(StructureTags.VILLAGE))
+        {
+            final List<StructurePiece> pieces = new ArrayList<>(structureStart.getPieces());
+
+            for (Iterator<StructurePiece> iterator = pieces.iterator(); iterator.hasNext(); )
+            {
+                final StructurePiece piece = iterator.next();
+                if (piece.toString().contains("street"))
+                {
+                    iterator.remove();
+                }
+            }
+
+            structureStart = new StructureStart(structureStart.getStructure(), structureStart.getChunkPos(), structureStart.getReferences(), new PiecesContainer(pieces));
+        }
+
+        if (holder.isPresent() && holder.get().key().location().toString().contains("stronghold"))
+        {
+            final List<StructurePiece> pieces = new ArrayList<>(structureStart.getPieces());
+
+            for (Iterator<StructurePiece> iterator = pieces.iterator(); iterator.hasNext(); )
+            {
+                final StructurePiece piece = iterator.next();
+                if (piece.toString().contains("portal") || piece instanceof StrongholdPieces.PortalRoom)
+                {
+                    iterator.remove();
+                }
+            }
+
+            structureStart = new StructureStart(structureStart.getStructure(), structureStart.getChunkPos(), structureStart.getReferences(), new PiecesContainer(pieces));
+        }
+
+        final StructureStart toPlace = structureStart;
         ChunkPos.rangeClosed(chunkPosMin, chunkPosMax).forEach((chunPos) -> {
-            structureStart.placeInChunk(level,
+            toPlace.placeInChunk(level,
               level.structureManager(),
               level.getChunkSource().getGenerator(),
               level.getRandom(),
@@ -336,6 +410,12 @@ public class RespawnManager
                 chunPos.getMaxBlockZ()),
               chunPos);
             level.getChunk(chunPos.x, chunPos.z).postProcessGeneration();
+
+            final ClientboundLevelChunkWithLightPacket packet = new ClientboundLevelChunkWithLightPacket(level.getChunk(chunPos.x, chunPos.z), level.getLightEngine(), null, null);
+            for (final ServerPlayer player : level.getChunkSource().chunkMap.getPlayers(chunPos, false))
+            {
+                player.connection.send(packet);
+            }
         });
 
         time = System.nanoTime() - time;
@@ -370,7 +450,7 @@ public class RespawnManager
                 return false;
             }
 
-            if (entity instanceof Mob)
+            if (entity instanceof Mob && entity instanceof Enemy)
             {
                 applyRespawnBonus((Mob) entity, respawnInProgress);
             }
@@ -409,7 +489,8 @@ public class RespawnManager
 
         for (int i = 0; i < respawnDifficulty; i++)
         {
-            ItemStack stack = null;
+            ItemStack toEnchantItem = null;
+            EquipmentSlot enchantItemSlot = null;
             for (final EquipmentSlot slot : EquipmentSlot.values())
             {
                 if (slot == EquipmentSlot.OFFHAND)
@@ -419,13 +500,14 @@ public class RespawnManager
 
                 if (!entity.getItemBySlot(slot).isEmpty() && entity.getItemBySlot(slot).getEnchantmentTags().isEmpty())
                 {
-                    stack = entity.getItemBySlot(slot);
+                    toEnchantItem = entity.getItemBySlot(slot);
+                    enchantItemSlot = slot;
                     break;
                 }
             }
 
             // Randomly add equipment
-            if (stack == null && RespawningStructures.rand.nextInt(10) == 0)
+            if (toEnchantItem == null && RespawningStructures.rand.nextInt(10) == 0)
             {
                 for (final EquipmentSlot slot : EquipmentSlot.values())
                 {
@@ -438,32 +520,37 @@ public class RespawnManager
 
                         if (slot == EquipmentSlot.MAINHAND)
                         {
-                            stack = Items.IRON_SWORD.getDefaultInstance();
-                            entity.setItemSlot(slot, stack);
+                            toEnchantItem = Items.IRON_SWORD.getDefaultInstance();
+                            enchantItemSlot = slot;
+                            entity.setItemSlot(slot, toEnchantItem);
                         }
 
                         if (slot == EquipmentSlot.CHEST)
                         {
-                            stack = Items.IRON_CHESTPLATE.getDefaultInstance();
-                            entity.setItemSlot(slot, stack);
+                            toEnchantItem = Items.IRON_CHESTPLATE.getDefaultInstance();
+                            enchantItemSlot = slot;
+                            entity.setItemSlot(slot, toEnchantItem);
                         }
 
                         if (slot == EquipmentSlot.HEAD)
                         {
-                            stack = Items.IRON_HELMET.getDefaultInstance();
-                            entity.setItemSlot(slot, stack);
+                            toEnchantItem = Items.IRON_HELMET.getDefaultInstance();
+                            enchantItemSlot = slot;
+                            entity.setItemSlot(slot, toEnchantItem);
                         }
 
                         if (slot == EquipmentSlot.LEGS)
                         {
-                            stack = Items.IRON_LEGGINGS.getDefaultInstance();
-                            entity.setItemSlot(slot, stack);
+                            toEnchantItem = Items.IRON_LEGGINGS.getDefaultInstance();
+                            enchantItemSlot = slot;
+                            entity.setItemSlot(slot, toEnchantItem);
                         }
 
                         if (slot == EquipmentSlot.FEET)
                         {
-                            stack = Items.IRON_BOOTS.getDefaultInstance();
-                            entity.setItemSlot(slot, stack);
+                            toEnchantItem = Items.IRON_BOOTS.getDefaultInstance();
+                            enchantItemSlot = slot;
+                            entity.setItemSlot(slot, toEnchantItem);
                         }
 
                         break;
@@ -471,11 +558,13 @@ public class RespawnManager
                 }
             }
 
-            if (stack != null)
+            if (toEnchantItem != null)
             {
-                EnchantmentHelper.enchantItem(entity.getRandom(), stack, respawnDifficulty, true);
+                EnchantmentHelper.enchantItem(entity.getRandom(), toEnchantItem, respawnDifficulty, true);
+                entity.setDropChance(enchantItemSlot, 0.3f);
             }
-            else
+
+            if (RespawningStructures.rand.nextInt(4) == 0)
             {
                 MobEffect randomEffect = randomEffects.get(RespawningStructures.rand.nextInt(randomEffects.size()));
                 if (!entity.hasEffect(randomEffect))
@@ -490,7 +579,7 @@ public class RespawnManager
       MobEffects.FIRE_RESISTANCE,
       MobEffects.REGENERATION,
       MobEffects.DAMAGE_BOOST,
-      MobEffects.FIRE_RESISTANCE,
+        MobEffects.WATER_BREATHING,
       MobEffects.ABSORPTION,
       MobEffects.DARKNESS,
       MobEffects.JUMP);

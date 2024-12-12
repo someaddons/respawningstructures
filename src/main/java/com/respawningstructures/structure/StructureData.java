@@ -59,6 +59,7 @@ public class StructureData
     public int containerLooted        = 0;
     public int dungeonContainerLooted = 0;
     public int lightsPlaced           = 0;
+    public int redstonePlaced = 0;
     public int blocksPlaced           = 0;
     public int blocksBroken           = 0;
     public int mobsKilled             = 0;
@@ -79,11 +80,6 @@ public class StructureData
     {
         this.pos = SectionPos.of(pos);
         this.id = id;
-    }
-
-    public boolean doesFulfillRespawnRequirements(final long currentTime)
-    {
-        return false;
     }
 
     /**
@@ -111,6 +107,7 @@ public class StructureData
         tag.putInt("containerLooted", containerLooted);
         tag.putInt("dungeonContainerLooted", dungeonContainerLooted);
         tag.putInt("lightsPlaced", lightsPlaced);
+        tag.putInt("redstonePlaced", redstonePlaced);
         tag.putInt("blocksPlaced", blocksPlaced);
         tag.putInt("blocksBroken", blocksBroken);
         tag.putInt("mobsKilled", mobsKilled);
@@ -134,6 +131,10 @@ public class StructureData
         containerLooted = tag.getInt("containerLooted");
         dungeonContainerLooted = tag.getInt("dungeonContainerLooted");
         lightsPlaced = tag.getInt("lightsPlaced");
+        if (tag.contains("redstonePlaced"))
+        {
+            redstonePlaced = tag.getInt("redstonePlaced");
+        }
         blocksPlaced = tag.getInt("blocksPlaced");
         blocksBroken = tag.getInt("blocksBroken");
         mobsKilled = tag.getInt("mobsKilled");
@@ -166,7 +167,8 @@ public class StructureData
 
         if (structureStart == null)
         {
-            RespawningStructures.LOGGER.warn("failed to fill!");
+            RespawningStructures.LOGGER.warn("Structure: " + this.id + " could not be found, disabling respawn");
+            disabledRespawn = true;
         }
 
         return structureStart;
@@ -180,7 +182,7 @@ public class StructureData
      */
     public boolean respawn(final ServerLevel level)
     {
-        if (canRespawn(level))
+        if (canRespawn(level) == RespawnStatus.PENDING_RESPAWN)
         {
             return RespawnManager.respawnStructure(level, this, true);
         }
@@ -194,35 +196,42 @@ public class StructureData
      * @param level
      * @return
      */
-    public boolean canRespawn(final ServerLevel level)
+    public RespawnStatus canRespawn(final ServerLevel level)
     {
         if (!RespawningStructures.config.getCommonConfig().enableAutomaticRespawn || disabledRespawn)
         {
-            return false;
+            return RespawnStatus.RESPAWN_DISABLED;
         }
 
-        if (RespawningStructures.config.getCommonConfig().blacklistedStructures.contains(id.toString()))
+        if ((RespawningStructures.config.getCommonConfig().whitelist && !RespawningStructures.config.getCommonConfig().blacklistedStructures.contains(id.toString()))
+            || (!RespawningStructures.config.getCommonConfig().whitelist && RespawningStructures.config.getCommonConfig().blacklistedStructures.contains(id.toString())))
         {
-            return false;
+            return RespawnStatus.BLACKLISTED;
         }
 
         if (lastActivity == 0 || (level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID).getLevelTime() - lastActivity)
                                    < RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L)
         {
-            return false;
+            if (lastActivity == 0)
+            {
+                return RespawnStatus.UNUSED;
+            }
+
+            return RespawnStatus.WAITING_RESPAWN_TIME;
         }
 
-        if (checkBlockingStats())
+        if (RespawningStructures.config.getCommonConfig().respawnableStructureIDs.contains(id.toString()))
         {
-            return false;
+            return RespawnStatus.PENDING_RESPAWN;
         }
 
-        if (checkStats())
+        RespawnStatus status = checkBlockingStats(level);
+        if (status.isBlocked())
         {
-            return true;
+            return status;
         }
 
-        return false;
+        return checkStats(level);
     }
 
     /**
@@ -230,30 +239,29 @@ public class StructureData
      *
      * @return
      */
-    public boolean checkStats()
+    public RespawnStatus checkStats(final ServerLevel level)
     {
         if (spawnerBreak > 0)
         {
-            return true;
+            return RespawnStatus.PENDING_RESPAWN;
         }
 
         if (dungeonContainerLooted > 0)
         {
-            return true;
+            return RespawnStatus.PENDING_RESPAWN;
         }
 
-        if (RespawningStructures.config.getCommonConfig().respawnableStructureIDs.contains(id.toString()) &&
-              (spawnerActivations + containerLooted + lightsPlaced + blocksPlaced + blocksBroken + mobsKilled + playerDeaths) > 3)
+        if ((spawnerActivations + containerLooted + lightsPlaced + blocksPlaced + blocksBroken + mobsKilled + playerDeaths) > 3)
         {
-            return true;
+            return RespawnStatus.PENDING_RESPAWN;
         }
 
         if ((spawnerActivations * 3 + containerLooted * 10 + lightsPlaced * 3 + blocksPlaced + blocksBroken + mobsKilled * 4 + playerDeaths * 10) > 30)
         {
-            return true;
+            return RespawnStatus.PENDING_RESPAWN;
         }
 
-        return false;
+        return RespawnStatus.UNUSED;
     }
 
     /**
@@ -261,19 +269,31 @@ public class StructureData
      *
      * @return
      */
-    public boolean checkBlockingStats()
+    public RespawnStatus checkBlockingStats(final ServerLevel level)
     {
-        if (portalUsage > 0)
+        if (portalUsage > 5)
         {
-            return true;
+            return RespawnStatus.BLOCKED_PORTAL;
         }
 
-        if (blocksPlaced > 100 + (bbSize / 10000d) && (double) blocksBroken > 20 + (bbSize / 100000d))
+        if ((blocksPlaced * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 10000d)
+            && (double) (blocksBroken * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 100000d))
         {
-            return true;
+            if (level.isLoaded(this.pos.center()))
+            {
+                blocksPlaced = (int) (blocksPlaced * 0.98);
+                blocksBroken = (int) (blocksBroken * 0.98);
+            }
+
+            return RespawnStatus.BLOCKED_PLACEDBROKENBLOCKS;
         }
 
-        return false;
+        if ((redstonePlaced * RespawningStructures.config.getCommonConfig().blockCountMod) > 10)
+        {
+            return RespawnStatus.BLOCKED_REDSTONEPLACED;
+        }
+
+        return RespawnStatus.PENDING_RESPAWN;
     }
 
     public StructureStart getStructureStart()
@@ -293,16 +313,46 @@ public class StructureData
      */
     public void onRespawnReset()
     {
+        respawns++;
         spawnerActivations = 0;
         spawnerBreak = 0;
         containerLooted = 0;
         dungeonContainerLooted = 0;
         lightsPlaced = 0;
+        redstonePlaced = 0;
         blocksPlaced = 0;
         blocksBroken = 0;
         mobsKilled = 0;
         playerDeaths = 0;
         portalUsage = 0;
         lastActivity = 0;
+    }
+
+    public enum RespawnStatus
+    {
+        UNUSED,
+        RESPAWN_DISABLED(true),
+        PENDING_RESPAWN,
+        BLOCKED_PORTAL(true),
+        BLOCKED_PLACEDBROKENBLOCKS(true),
+        BLOCKED_REDSTONEPLACED(true),
+        BLACKLISTED(true),
+        WAITING_RESPAWN_TIME;
+        private final boolean isBLocked;
+
+        RespawnStatus()
+        {
+            isBLocked = false;
+        }
+
+        RespawnStatus(final boolean blocked)
+        {
+            isBLocked = blocked;
+        }
+
+        public boolean isBlocked()
+        {
+            return isBLocked;
+        }
     }
 }
