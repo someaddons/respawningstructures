@@ -1,11 +1,17 @@
 package com.respawningstructures.event;
 
+import com.respawningstructures.RespawningStructures;
 import com.respawningstructures.structure.RespawnLevelData;
 import com.respawningstructures.structure.RespawnManager;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -21,27 +27,7 @@ import java.util.Calendar;
  */
 public class EventHandler
 {
-    /**
-     * Conditions to trigger respawn watching:
-     * - Spawner broken
-     * - Spawner spawning blocked by player? difficult if some structure blocks it by default
-     * - Dungeon chest looted - detect if it is a dungeon loot table
-     * - Killing mobs
-     * - Breaking some blocks
-     * - placing torches
-     * - fighting
-     * - player dying
-     * <p>
-     * Conditions to fulfill for respawn:
-     * - Time passed: Config, 10 ingame weeks?
-     * - Not too many blocks placed next to, hard to track maybe per player?
-     * - Threshold of trigger combination counts, 1 mob killed some blocks placed, sone chests looted, some spawner broken
-     * - Not too high inhabited time diff since start of tracking
-     * <p>
-     * Extra difficulty:
-     * Spawn additional or replace mobs during respawn(mark persistent)
-     */
-
+    private final static TagKey<Block> REDSTONE = TagKey.create(Registries.BLOCK, new ResourceLocation(RespawningStructures.MOD_ID, "redstone"));
     private static long lastTime = 0;
 
     @SubscribeEvent
@@ -90,6 +76,10 @@ public class EventHandler
             {
                 RespawnManager.onSpawnerKilled((SpawnerBlockEntity) event.getLevel().getBlockEntity(event.getPos()));
             }
+            else if (event.getState().hasProperty(BlockStateProperties.POWER) || event.getState().is(REDSTONE))
+            {
+                RespawnManager.onRedstoneDestroyed((ServerPlayer) event.getPlayer(), event.getPos());
+            }
             else
             {
                 RespawnManager.onBlockBreak((ServerPlayer) event.getPlayer(), event.getPos());
@@ -105,6 +95,10 @@ public class EventHandler
             if (event.getState().getLightEmission() > 0)
             {
                 RespawnManager.onLightPlaced((ServerPlayer) event.getEntity(), event.getPos());
+            }
+            else if (event.getState().hasProperty(BlockStateProperties.POWER) || event.getState().is(REDSTONE))
+            {
+                RespawnManager.onRedstonePlaced((ServerPlayer) event.getEntity(), event.getPos());
             }
             else
             {

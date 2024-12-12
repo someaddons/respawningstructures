@@ -282,42 +282,9 @@ public class Command
                     context.getSource()
                       .sendSystemMessage(Component.literal("Structure: " + data.id).withStyle(ChatFormatting.YELLOW));
 
-                    if (RespawningStructures.config.getCommonConfig().blacklistedStructures.contains(data.id.toString()))
-                    {
+                    final StructureData.RespawnStatus status = data.canRespawn(context.getSource().getLevel());
                         context.getSource()
-                          .sendSystemMessage(Component.literal("Respawn is blacklisted in config").withStyle(ChatFormatting.RED));
-                    }
-
-                    if (!RespawningStructures.config.getCommonConfig().enableAutomaticRespawn)
-                    {
-                        context.getSource()
-                          .sendSystemMessage(Component.literal("All respawn is disabled in config").withStyle(ChatFormatting.RED));
-                    }
-
-                    if (data.disabledRespawn)
-                    {
-                        context.getSource()
-                          .sendSystemMessage(Component.literal("This structure is manually set to not respawn").withStyle(ChatFormatting.RED));
-                    }
-
-                    if (data.portalUsage > 0)
-                    {
-                        context.getSource()
-                          .sendSystemMessage(Component.literal("Respawn disabled due to portal in structure").withStyle(ChatFormatting.RED));
-                    }
-
-                    if (data.blocksPlaced > 100 + (data.bbSize / 10000d) && (double) data.blocksBroken > 20 + (data.bbSize / 100000d))
-                    {
-                        context.getSource()
-                          .sendSystemMessage(Component.literal("Respawn disabled due to large amount of broken and placed blocks, indicating a player built structure within.")
-                            .withStyle(ChatFormatting.RED));
-                    }
-
-                    if (!data.checkStats())
-                    {
-                        context.getSource()
-                          .sendSystemMessage(Component.literal("Too low usage to respawn").withStyle(ChatFormatting.RED));
-                    }
+                          .sendSystemMessage(Component.literal("Respawn status: " + status).withStyle(status.isBlocked() ? ChatFormatting.RED : ChatFormatting.YELLOW));
 
                     int minutes_remaining = Math.max(0,
                       (int) (1 / 60d * (RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L - (
