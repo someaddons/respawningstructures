@@ -13,7 +13,8 @@
     "LootTriggerMixin",
     "NetherPortalMixin",
     "SpawnerActiveMixin",
-    "StructureStartBBFixMixin"
+    "StructureStartBBFixMixin",
+    "TemplateStructurePieceMixin"
   ],
   "client": [
   ],

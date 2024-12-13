@@ -17,6 +17,7 @@ import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -104,6 +105,15 @@ public class EventHandler
             {
                 RespawnManager.onBlockPlaced((ServerPlayer) event.getEntity(), event.getPos());
             }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onExplosion(ExplosionEvent.Detonate event)
+    {
+        if (!event.getLevel().isClientSide)
+        {
+            RespawnManager.onExplosion(event.getLevel(), event.getExplosion(), event.getAffectedBlocks());
         }
     }
 
