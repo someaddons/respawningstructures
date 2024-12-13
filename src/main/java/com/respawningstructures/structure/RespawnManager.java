@@ -21,11 +21,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraft.world.level.levelgen.structure.BoundingBox;
-import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.StructurePiece;
-import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.*;
 import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 import net.minecraft.world.level.levelgen.structure.structures.*;
 import net.minecraft.world.phys.AABB;
@@ -104,6 +103,10 @@ public class RespawnManager
         if (structureData != null)
         {
             structureData.mobsKilled++;
+            if (entity.getMaxHealth() > 80)
+            {
+                structureData.mobsKilled += 10;
+            }
         }
     }
 
@@ -169,6 +172,15 @@ public class RespawnManager
         if (structureData != null)
         {
             structureData.blocksPlaced++;
+        }
+    }
+
+    public static void onExplosion(final Level level, final Explosion explosion, final List<BlockPos> affectedBlocks)
+    {
+        final StructureData structureData = getForPos((ServerLevel) level, BlockPos.containing(((IExplosionPosition) explosion).getactualexplosionpos()), true);
+        if (structureData != null)
+        {
+            structureData.blocksBroken += affectedBlocks.size() / 2;
         }
     }
 
@@ -359,6 +371,11 @@ public class RespawnManager
             if (piece instanceof NetherFortressPieces.CastleSmallCorridorRightTurnPiece)
             {
                 ((NetherFortressPieces.CastleSmallCorridorRightTurnPiece) piece).isNeedingChest = RespawningStructures.rand.nextInt(3) == 0;
+            }
+
+            if (piece instanceof IRemembersPositionPiece)
+            {
+                ((IRemembersPositionPiece) piece).setRespawnTemplatePos(((TemplateStructurePiece) piece).templatePosition());
             }
         }
 

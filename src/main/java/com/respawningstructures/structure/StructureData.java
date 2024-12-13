@@ -222,7 +222,7 @@ public class StructureData
 
         if (RespawningStructures.config.getCommonConfig().respawnableStructureIDs.contains(id.toString()))
         {
-            return RespawnStatus.PENDING_RESPAWN;
+            return checkStats(level);
         }
 
         RespawnStatus status = checkBlockingStats(level);
@@ -247,11 +247,6 @@ public class StructureData
         }
 
         if (dungeonContainerLooted > 0)
-        {
-            return RespawnStatus.PENDING_RESPAWN;
-        }
-
-        if ((spawnerActivations + containerLooted + lightsPlaced + blocksPlaced + blocksBroken + mobsKilled + playerDeaths) > 3)
         {
             return RespawnStatus.PENDING_RESPAWN;
         }

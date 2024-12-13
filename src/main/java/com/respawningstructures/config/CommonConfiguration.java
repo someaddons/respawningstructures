@@ -107,6 +107,7 @@ public class CommonConfiguration implements ICommonConfig
     {
         minutesUntilRespawn = data.get("minutesUntilRespawn").getAsJsonObject().get("minutesUntilRespawn").getAsInt();
         enableAutomaticRespawn = data.get("enableAutomaticRespawn").getAsJsonObject().get("enableAutomaticRespawn").getAsBoolean();
+        whitelist = data.get("whitelist").getAsJsonObject().get("whitelist").getAsBoolean();
         increaseDifficultyWithRespawn = data.get("increaseDifficultyWithRespawn").getAsJsonObject().get("increaseDifficultyWithRespawn").getAsBoolean();
         blockCountMod = data.get("blockCountMod").getAsJsonObject().get("blockCountMod").getAsDouble();
 
