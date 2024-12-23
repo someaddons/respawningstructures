@@ -12,28 +12,31 @@ import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.MobSpawnEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.event.level.ExplosionEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.Calendar;
+
+import static com.respawningstructures.structure.RespawnLevelData.RESPAWNLEVELDATAFACTORY;
 
 /**
  * Forge event bus handler, ingame events are fired here
  */
 public class EventHandler
 {
-    private final static TagKey<Block> REDSTONE = TagKey.create(Registries.BLOCK, new ResourceLocation(RespawningStructures.MOD_ID, "redstone"));
-    private static long lastTime = 0;
+    private final static TagKey<Block> REDSTONE = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(RespawningStructures.MOD_ID, "redstone"));
+    private static       long          lastTime = 0;
 
     @SubscribeEvent
-    public static void onServerTick(final TickEvent.ServerTickEvent event)
+    public static void onServerTick(final ServerTickEvent.Post event)
     {
         if (event.getServer().getTickCount() % 100 == 35)
         {
@@ -49,8 +52,7 @@ public class EventHandler
 
                 for (final ServerLevel level : event.getServer().getAllLevels())
                 {
-                    final RespawnLevelData data = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
-                    ;
+                    final RespawnLevelData data = level.getDataStorage().computeIfAbsent(RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
                     if (data != null)
                     {
                         data.increaseTime(60 * 5);
@@ -61,11 +63,11 @@ public class EventHandler
     }
 
     @SubscribeEvent
-    public static void onLevelTick(final TickEvent.LevelTickEvent event)
+    public static void onLevelTick(final LevelTickEvent.Post event)
     {
-        if (event.phase == TickEvent.Phase.END && !event.level.isClientSide && event.level.getGameTime() % 1000 == 17)
+        if (!event.getLevel().isClientSide && event.getLevel().getGameTime() % 1000 == 17)
         {
-            RespawnManager.onLevelTick((ServerLevel) event.level);
+            RespawnManager.onLevelTick((ServerLevel) event.getLevel());
         }
     }
 
@@ -150,7 +152,7 @@ public class EventHandler
     }
 
     @SubscribeEvent
-    public static void onEntityAdded(final MobSpawnEvent.FinalizeSpawn event)
+    public static void onEntityAdded(final MobSpawnEvent.PositionCheck event)
     {
         if (!event.getLevel().isClientSide() && event.getSpawnType() == MobSpawnType.SPAWNER && event.getEntity() != null)
         {
