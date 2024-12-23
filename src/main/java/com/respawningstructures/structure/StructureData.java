@@ -2,16 +2,20 @@ package com.respawningstructures.structure;
 
 import com.respawningstructures.RespawningStructures;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 
+import java.util.Iterator;
 import java.util.Map;
 
 public class StructureData
@@ -54,17 +58,18 @@ public class StructureData
     /**
      * Trigger data counts
      */
-    public int spawnerActivations     = 0;
-    public int spawnerBreak           = 0;
-    public int containerLooted        = 0;
-    public int dungeonContainerLooted = 0;
-    public int lightsPlaced           = 0;
-    public int redstonePlaced = 0;
-    public int blocksPlaced           = 0;
-    public int blocksBroken           = 0;
-    public int mobsKilled             = 0;
-    public int playerDeaths           = 0;
-    public int portalUsage            = 0;
+    public int  spawnerActivations = 0;
+    public int  spawnerBreak       = 0;
+    public int  containerLooted    = 0;
+    public int  lightsPlaced       = 0;
+    public int  redstonePlaced     = 0;
+    public int  blocksPlaced       = 0;
+    public int  blocksBroken       = 0;
+    public int  mobsKilled         = 0;
+    public int  playerDeaths       = 0;
+    public int  portalUsage        = 0;
+    public int  blockEntities      = 0;
+    public long inhabitedStart     = 0;
 
     /**
      * Timepoint of last activity
@@ -105,9 +110,10 @@ public class StructureData
         tag.putInt("spawnerBreak", spawnerBreak);
         tag.putInt("portalUsage", portalUsage);
         tag.putInt("containerLooted", containerLooted);
-        tag.putInt("dungeonContainerLooted", dungeonContainerLooted);
         tag.putInt("lightsPlaced", lightsPlaced);
         tag.putInt("redstonePlaced", redstonePlaced);
+        tag.putInt("blockEntities", blockEntities);
+        tag.putLong("inhabitedStart", inhabitedStart);
         tag.putInt("blocksPlaced", blocksPlaced);
         tag.putInt("blocksBroken", blocksBroken);
         tag.putInt("mobsKilled", mobsKilled);
@@ -129,12 +135,20 @@ public class StructureData
         spawnerBreak = tag.getInt("spawnerBreak");
         portalUsage = tag.getInt("portalUsage");
         containerLooted = tag.getInt("containerLooted");
-        dungeonContainerLooted = tag.getInt("dungeonContainerLooted");
         lightsPlaced = tag.getInt("lightsPlaced");
         if (tag.contains("redstonePlaced"))
         {
             redstonePlaced = tag.getInt("redstonePlaced");
         }
+        if (tag.contains("blockEntities"))
+        {
+            blockEntities = tag.getInt("blockEntities");
+        }
+        if (tag.contains("inhabitedStart"))
+        {
+            inhabitedStart = tag.getLong("inhabitedStart");
+        }
+
         blocksPlaced = tag.getInt("blocksPlaced");
         blocksBroken = tag.getInt("blocksBroken");
         mobsKilled = tag.getInt("mobsKilled");
@@ -155,13 +169,13 @@ public class StructureData
             if (id.equals(level.registryAccess().registry(Registries.STRUCTURE).get().getKey(entry.getKey())))
             {
                 level.structureManager().fillStartsForStructure(entry.getKey(), entry.getValue(),
-                  structureStart ->
-                  {
-                      if (SectionPos.of(structureStart.getBoundingBox().getCenter()).equals(pos))
-                      {
-                          this.structureStart = structureStart;
-                      }
-                  });
+                    structureStart ->
+                    {
+                        if (SectionPos.of(structureStart.getBoundingBox().getCenter()).equals(pos))
+                        {
+                            this.structureStart = structureStart;
+                        }
+                    });
             }
         }
 
@@ -210,7 +224,7 @@ public class StructureData
         }
 
         if (lastActivity == 0 || (level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID).getLevelTime() - lastActivity)
-                                   < RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L)
+            < RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L)
         {
             if (lastActivity == 0)
             {
@@ -231,7 +245,42 @@ public class StructureData
             return status;
         }
 
-        return checkStats(level);
+        status = checkStats(level);
+
+        if (status == RespawnStatus.PENDING_RESPAWN)
+        {
+            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+            for (Iterator<Respawn> iterator = levelData.playerRespawnTracker.values().iterator(); iterator.hasNext(); )
+            {
+                final Respawn respawnData = iterator.next();
+                final BlockPos center = pos.center();
+                if (respawnData.position.distManhattan(center) < RespawningStructures.config.getCommonConfig().playerRespawnDist
+                    && (levelData.getLevelTime() - respawnData.lastUsageLevelTime) < 60 * 60 * 24 * 21)
+                {
+                    lastActivity = levelData.getLevelTime() - (RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L) / 2;
+                    return RespawnStatus.BLOCKED_PORTAL;
+                }
+
+                if (levelData.getLevelTime() - respawnData.lastUsageLevelTime > 60 * 60 * 24 * 23)
+                {
+                    iterator.remove();
+                }
+            }
+
+            if (inhabitedStart != 0 && level.isLoaded(pos.origin()))
+            {
+                final ChunkAccess chunk = level.getChunk(pos.origin());
+                if ((chunk.getInhabitedTime() - inhabitedStart) / 20.0 / ((levelData.getLevelTime() - 60) - lastActivity) > (
+                    RespawningStructures.config.getCommonConfig().playerNearbyTime / 100d))
+                {
+                    lastActivity = levelData.getLevelTime();
+                    inhabitedStart = chunk.getInhabitedTime();
+                    return RespawnStatus.BLOCKED_PORTAL;
+                }
+            }
+        }
+
+        return status;
     }
 
     /**
@@ -246,12 +295,13 @@ public class StructureData
             return RespawnStatus.PENDING_RESPAWN;
         }
 
-        if (dungeonContainerLooted > 0)
+        if (containerLooted > 0)
         {
             return RespawnStatus.PENDING_RESPAWN;
         }
 
-        if ((spawnerActivations * 3 + containerLooted * 10 + lightsPlaced * 3 + blocksPlaced + blocksBroken + mobsKilled * 4 + playerDeaths * 10) > 30)
+        if ((spawnerActivations * 3 + lightsPlaced * 3 + blocksPlaced + blocksBroken + mobsKilled * 4 + playerDeaths * 10)
+            > 25 - (RespawningStructures.config.getCommonConfig().respawnableStructureIDs.contains(id.toString()) ? 15 : 0))
         {
             return RespawnStatus.PENDING_RESPAWN;
         }
@@ -271,21 +321,34 @@ public class StructureData
             return RespawnStatus.BLOCKED_PORTAL;
         }
 
-        if ((blocksPlaced * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 10000d)
-            && (double) (blocksBroken * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 100000d))
-        {
-            if (level.isLoaded(this.pos.center()))
-            {
-                blocksPlaced = (int) (blocksPlaced * 0.98);
-                blocksBroken = (int) (blocksBroken * 0.98);
-            }
-
-            return RespawnStatus.BLOCKED_PLACEDBROKENBLOCKS;
-        }
-
         if ((redstonePlaced * RespawningStructures.config.getCommonConfig().blockCountMod) > 10)
         {
             return RespawnStatus.BLOCKED_REDSTONEPLACED;
+        }
+
+
+        // TODO: block  break percentage
+        if (blockEntities > 10)
+        {
+            return RespawnStatus.BLOCKED_FOUND_BLOCKENTITIES;
+        }
+
+        if ((blocksBroken * RespawningStructures.config.getCommonConfig().blockCountMod) / bbSize > 0.15)
+        {
+            return RespawnStatus.BLOCKED_BROKENBLOCKS;
+        }
+
+        if ((blocksPlaced * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 10000d)
+            && (blocksBroken * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 100000d))
+        {
+            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+            if ((levelData.getLevelTime() - lastActivity) > 60 * 60 * 24 * 60 && level.isLoaded(this.pos.center()))
+            {
+                blocksPlaced = (int) (blocksPlaced * 0.99);
+                blocksBroken = (int) (blocksBroken * 0.99);
+            }
+
+            return RespawnStatus.BLOCKED_PLACEDBROKENBLOCKS;
         }
 
         return RespawnStatus.PENDING_RESPAWN;
@@ -312,7 +375,6 @@ public class StructureData
         spawnerActivations = 0;
         spawnerBreak = 0;
         containerLooted = 0;
-        dungeonContainerLooted = 0;
         lightsPlaced = 0;
         redstonePlaced = 0;
         blocksPlaced = 0;
@@ -320,7 +382,54 @@ public class StructureData
         mobsKilled = 0;
         playerDeaths = 0;
         portalUsage = 0;
+        blockEntities = 0;
+        inhabitedStart = 0;
         lastActivity = 0;
+    }
+
+    public Component getStats(final ServerLevel level)
+    {
+        int dist = Integer.MAX_VALUE;
+        final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        for (Iterator<Respawn> iterator = levelData.playerRespawnTracker.values().iterator(); iterator.hasNext(); )
+        {
+            final Respawn respawnData = iterator.next();
+            final BlockPos center = pos.center();
+            if (respawnData.position.distManhattan(center) < RespawningStructures.config.getCommonConfig().playerRespawnDist
+                && (levelData.getLevelTime() - respawnData.lastUsageLevelTime) < 60 * 60 * 24 * 21)
+            {
+                if (respawnData.position.distManhattan(center) < dist)
+                {
+                    dist = respawnData.position.distManhattan(center);
+                }
+            }
+
+            if (levelData.getLevelTime() - respawnData.lastUsageLevelTime > 60 * 60 * 24 * 23)
+            {
+                iterator.remove();
+            }
+        }
+
+        int inhabitedTimePct = 0;
+        if (inhabitedStart != 0)
+        {
+            final ChunkAccess chunk = level.getChunk(pos.origin());
+
+            inhabitedTimePct = (int) (((chunk.getInhabitedTime() - inhabitedStart) / 20.0 / ((levelData.getLevelTime() - 60) - lastActivity)) * 100);
+        }
+
+        return Component.literal("Broken blocks: " + blocksBroken).withStyle(ChatFormatting.BLUE)
+            .append(Component.literal(" Placed blocks: " + blocksPlaced).withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(" lights placed: " + lightsPlaced).withStyle(ChatFormatting.BLUE))
+            .append(Component.literal(" redstone placed: " + redstonePlaced).withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(" blockentities : " + blockEntities).withStyle(ChatFormatting.BLUE))
+            .append(Component.literal(" Portal usage: " + portalUsage).withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(" Containers looted: " + containerLooted).withStyle(ChatFormatting.BLUE))
+            .append(Component.literal(" Mobs killed: " + mobsKilled).withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(" Player deaths: " + playerDeaths).withStyle(ChatFormatting.BLUE))
+            .append(Component.literal(" Spawner broken: " + spawnerBreak).withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(" Nearest player spawn: " + dist).withStyle(ChatFormatting.BLUE))
+            .append(Component.literal(" Inhabited time pct: " + inhabitedTimePct).withStyle(ChatFormatting.WHITE));
     }
 
     public enum RespawnStatus
@@ -330,9 +439,11 @@ public class StructureData
         PENDING_RESPAWN,
         BLOCKED_PORTAL(true),
         BLOCKED_PLACEDBROKENBLOCKS(true),
+        BLOCKED_BROKENBLOCKS(true),
         BLOCKED_REDSTONEPLACED(true),
         BLACKLISTED(true),
-        WAITING_RESPAWN_TIME;
+        WAITING_RESPAWN_TIME,
+        BLOCKED_FOUND_BLOCKENTITIES(true);
         private final boolean isBLocked;
 
         RespawnStatus()

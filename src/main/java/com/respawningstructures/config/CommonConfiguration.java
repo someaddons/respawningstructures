@@ -13,12 +13,6 @@ import java.util.Set;
 public class CommonConfiguration implements ICommonConfig
 {
     public Set<String>
-      dungeonChestLoottables = new LinkedHashSet<>(Lists.newArrayList("chests/abandoned_mineshaft", "chests/bastion_bridge", "chests/bastion_hoglin_stable", "chests/bastion_other",
-      "chests/bastion_treasure", "chests/ancient_city", "chests/ancient_city_ice_box", "chests/desert_pyramid", "chests/end_city_treasure", "chests/igloo_chest",
-      "chests/jungle_temple_dispenser", "chests/jungle_temple", "chests/nether_bridge", "chests/pillager_outpost", "chests/simple_dungeon", "chests/stronghold_corridor",
-      "chests/stronghold_crossing", "chests/stronghold_library", "chests/woodland_mansion"));
-
-    public Set<String>
         respawnableStructureIDs = new LinkedHashSet<>(Lists.newArrayList());
 
     public boolean whitelist = false;
@@ -26,10 +20,13 @@ public class CommonConfiguration implements ICommonConfig
 
     public Set<String> dimensionBlackList    = new LinkedHashSet<>();
 
-    public int     minutesUntilRespawn           = 60 * 48;
+    public int     minutesUntilRespawn = 60 * 96;
     public double blockCountMod = 1.0;
     public boolean enableAutomaticRespawn        = true;
     public boolean increaseDifficultyWithRespawn = true;
+    public int     playerRespawnDist   = 200;
+    public int     playerNearbyTime    = 15;
+    public boolean logRespawns         = true;
 
     public CommonConfiguration()
     {
@@ -45,7 +42,7 @@ public class CommonConfiguration implements ICommonConfig
         root.add("enableAutomaticRespawn", entry);
 
         final JsonObject entry7 = new JsonObject();
-        entry7.addProperty("desc:", "Sets the time after which a structure can respawn, the timer starts after the last activity within the structure. default:2880 minutes(48h)");
+        entry7.addProperty("desc:", "Sets the time after which a structure can respawn, the timer starts after the last activity within the structure. default:5760 minutes(96h)");
         entry7.addProperty("minutesUntilRespawn", minutesUntilRespawn);
         root.add("minutesUntilRespawn", entry7);
 
@@ -60,6 +57,18 @@ public class CommonConfiguration implements ICommonConfig
                 + "By default it blocks respawn after 200+(scales slightly with structure size) blocks placed/broken. default: 1.0");
         entry8.addProperty("blockCountMod", blockCountMod);
         root.add("blockCountMod", entry8);
+
+        final JsonObject entry17 = new JsonObject();
+        entry17.addProperty("desc:",
+            "Sets the minimum distance from player respawn position(bed e.g.) to allow structure respawning, 0 to disable this. default: 200 blocks");
+        entry17.addProperty("playerRespawnDist", playerRespawnDist);
+        root.add("playerRespawnDist", entry17);
+
+        final JsonObject entry18 = new JsonObject();
+        entry18.addProperty("desc:",
+            "Prevents respawns in too busy player areas, tracks how much percent of the respawntime a player was nearby loading the chunk. Resets respawn time counter when it prevent a structure respawn. default: 15 percent, range 0-100");
+        entry18.addProperty("playerNearbyTime", playerNearbyTime);
+        root.add("playerNearbyTime", entry18);
 
         final JsonObject entry10 = new JsonObject();
         entry10.addProperty("desc:",
@@ -100,13 +109,21 @@ public class CommonConfiguration implements ICommonConfig
         entry14.addProperty("whitelist", whitelist);
         root.add("whitelist", entry14);
 
+        final JsonObject entry19 = new JsonObject();
+        entry19.addProperty("desc:", "Log structure respawns happening to the latest.log, default: true");
+        entry19.addProperty("logRespawns", logRespawns);
+        root.add("logRespawns", entry19);
+
         return root;
     }
 
     public void deserialize(JsonObject data)
     {
         minutesUntilRespawn = data.get("minutesUntilRespawn").getAsJsonObject().get("minutesUntilRespawn").getAsInt();
+        playerRespawnDist = data.get("playerRespawnDist").getAsJsonObject().get("playerRespawnDist").getAsInt();
+        playerNearbyTime = data.get("playerNearbyTime").getAsJsonObject().get("playerNearbyTime").getAsInt();
         enableAutomaticRespawn = data.get("enableAutomaticRespawn").getAsJsonObject().get("enableAutomaticRespawn").getAsBoolean();
+        logRespawns = data.get("logRespawns").getAsJsonObject().get("logRespawns").getAsBoolean();
         whitelist = data.get("whitelist").getAsJsonObject().get("whitelist").getAsBoolean();
         increaseDifficultyWithRespawn = data.get("increaseDifficultyWithRespawn").getAsJsonObject().get("increaseDifficultyWithRespawn").getAsBoolean();
         blockCountMod = data.get("blockCountMod").getAsJsonObject().get("blockCountMod").getAsDouble();

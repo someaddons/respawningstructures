@@ -83,13 +83,30 @@ public class RespawnManager
         final StructureData structureData = getForPos(level, pos, true);
         if (structureData != null)
         {
-            if (lootTable.getPath().toLowerCase().contains("dungeon") || RespawningStructures.config.getCommonConfig().dungeonChestLoottables.contains(lootTable.getPath()))
+                structureData.containerLooted++;
+        }
+    }
+
+    /**
+     * On blockentity being placed/removed, may happen by not a player but indicates activity
+     *
+     * @param level
+     * @param pos
+     * @param remove
+     */
+    public static void onBlockEntityAddRemove(final ServerLevel level, final BlockPos pos, final boolean remove)
+    {
+        final StructureData structureData = getForPos(level, pos, false);
+        if (structureData != null)
+        {
+            if (!remove)
             {
-                structureData.dungeonContainerLooted++;
+                structureData.setLastModifiedTime(structureData.lastActivity + 200);
+                structureData.blockEntities++;
             }
             else
             {
-                structureData.containerLooted++;
+                structureData.blockEntities = Math.max(0, structureData.blockEntities - 1);
             }
         }
     }
@@ -196,6 +213,74 @@ public class RespawnManager
         }
     }
 
+    /**
+     * Track player respawn positions
+     *
+     * @param entity
+     */
+    public static void onPlayerLogin(final ServerPlayer entity)
+    {
+        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        if (entity.getRespawnPosition() != null && entity.level().dimension() == entity.getRespawnDimension())
+        {
+            levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime())).lastUsageLevelTime =
+                levelData.getLevelTime();
+        }
+        levelData.setDirty();
+    }
+
+    /**
+     * Update player respawn time usage
+     *
+     * @param entity
+     */
+    public static void onPlayerRespawn(final ServerPlayer entity)
+    {
+        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        if (entity.getRespawnPosition() != null && entity.level().dimension() == entity.getRespawnDimension())
+        {
+            levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime())).lastUsageLevelTime =
+                levelData.getLevelTime();
+        }
+        levelData.setDirty();
+    }
+
+    /**
+     * Update player respawn
+     *
+     * @param entity
+     */
+    public static void onPlayerSetSpawn(final ServerPlayer entity)
+    {
+        for (final ServerLevel level : entity.server.getAllLevels())
+        {
+            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+            Respawn respawn = levelData.playerRespawnTracker.get(entity.getUUID());
+
+            if (respawn == null)
+            {
+                if (level.dimension() == entity.getRespawnDimension())
+                {
+                    levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(),
+                        uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime()));
+                }
+            }
+            else
+            {
+                if (level.dimension() != entity.getRespawnDimension())
+                {
+                    levelData.playerRespawnTracker.remove(entity.getUUID());
+                }
+                else
+                {
+                    respawn.lastUsageLevelTime = levelData.getLevelTime();
+                }
+            }
+
+            levelData.setDirty();
+        }
+    }
+
     public static void onPortalUsage(final ServerPlayer player, final BlockPos pos)
     {
         final StructureData structureData = getForPos((ServerLevel) player.level(), pos, true);
@@ -294,7 +379,11 @@ public class RespawnManager
             }
         }
 
-        RespawningStructures.LOGGER.info("Respawning structure: " + structureData.id + " at: " + structureData.pos.origin());
+        if (RespawningStructures.config.getCommonConfig().logRespawns)
+        {
+            RespawningStructures.LOGGER.info(
+                "Respawning structure: " + structureData.id + " at: " + structureData.pos.origin() + " stats: " + structureData.getStats(level).getString());
+        }
 
         respawnInProgress = structureData;
         respawnData.setDirty();

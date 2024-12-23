@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LootTriggerMixin extends BaseContainerBlockEntity
 {
     @Shadow
-    protected ResourceLocation lootTable;
+    public ResourceLocation lootTable;
 
     protected LootTriggerMixin(
       final BlockEntityType<?> p_155076_,
