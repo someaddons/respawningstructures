@@ -16,6 +16,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.level.LevelEvent;
@@ -154,6 +155,24 @@ public class EventHandler
         if (!event.getLevel().isClientSide() && event.getSpawnType() == MobSpawnType.SPAWNER && event.getEntity() != null)
         {
             RespawnManager.onSpawnerSpawn(event.getEntity());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLogin(final PlayerEvent.PlayerLoggedInEvent event)
+    {
+        if (event.getEntity() instanceof ServerPlayer)
+        {
+            RespawnManager.onPlayerLogin((ServerPlayer) event.getEntity());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerRespawn(final PlayerEvent.PlayerRespawnEvent event)
+    {
+        if (event.getEntity() instanceof ServerPlayer)
+        {
+            RespawnManager.onPlayerRespawn((ServerPlayer) event.getEntity());
         }
     }
 }

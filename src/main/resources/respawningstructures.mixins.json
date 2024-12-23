@@ -9,9 +9,11 @@
     "ContainerDropRespawnMixin",
     "EndPortalMixin",
     "EntityLootTriggerMixin",
+    "LevelChunkBlockEntityHookMixin",
     "LevelChunkPostProcessMixin",
     "LootTriggerMixin",
     "NetherPortalMixin",
+    "ServerPlayerSpawnPosMixin",
     "SpawnerActiveMixin",
     "StructureStartBBFixMixin",
     "TemplateStructurePieceMixin"

@@ -294,24 +294,10 @@ public class Command
                     context.getSource()
                       .sendSystemMessage(Component.literal("Remaining minutes until respawn: " + minutes_remaining)
                         .withStyle(minutes_remaining == 0 ? ChatFormatting.GREEN : ChatFormatting.RED));
-
                     context.getSource()
                       .sendSystemMessage(Component.literal("Statistics:").withStyle(ChatFormatting.YELLOW));
                     context.getSource()
-                      .sendSystemMessage(Component.literal("Broken blocks: " + data.blocksBroken));
-                    context.getSource()
-                      .sendSystemMessage(Component.literal("Placed blocks: " + data.blocksPlaced));
-                    context.getSource()
-                      .sendSystemMessage(Component.literal("Portal usage: " + data.portalUsage));
-                    context.getSource()
-                      .sendSystemMessage(Component.literal("Containers looted: " + (data.containerLooted + data.dungeonContainerLooted)));
-                    context.getSource()
-                      .sendSystemMessage(Component.literal("Mobs killed: " + data.mobsKilled));
-                    context.getSource()
-                      .sendSystemMessage(Component.literal("Player deaths: " + data.playerDeaths));
-                    context.getSource()
-                      .sendSystemMessage(Component.literal("Spawners broken: " + data.spawnerBreak));
-
+                        .sendSystemMessage(data.getStats(context.getSource().getLevel()));
                     return 1;
                 })))
           ;

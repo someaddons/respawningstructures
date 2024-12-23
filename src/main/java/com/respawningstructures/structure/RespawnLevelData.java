@@ -16,10 +16,7 @@ import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.saveddata.SavedData;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class RespawnLevelData extends SavedData
 {
@@ -36,9 +33,14 @@ public class RespawnLevelData extends SavedData
     private final Set<StructureData> allStructureData = new HashSet<>();
 
     /**
+     * Tracks player respawn positions
+     */
+    public final Map<UUID, Respawn> playerRespawnTracker = new HashMap<>();
+
+    /**
      * Time elapsed on the world
      */
-    private long elapsedTime = 0;
+    private long elapsedTime = 5;
 
     public RespawnLevelData()
     {
@@ -66,6 +68,19 @@ public class RespawnLevelData extends SavedData
                 allStructureData.add(data);
             }
         }
+
+        if (nbt.contains("playerrespawns"))
+        {
+            ListTag respawnList = nbt.getList("playerrespawns", Tag.TAG_COMPOUND);
+            for (final Tag tag : respawnList)
+            {
+                if (tag instanceof CompoundTag compoundTag)
+                {
+                    Respawn respawn = new Respawn(compoundTag);
+                    playerRespawnTracker.put(respawn.playerUUID, respawn);
+                }
+            }
+        }
     }
 
     @Override
@@ -83,6 +98,17 @@ public class RespawnLevelData extends SavedData
         }
 
         nbt.put("Structures", list);
+
+        ListTag respawnList = new ListTag();
+        for (final Map.Entry<UUID, Respawn> data : playerRespawnTracker.entrySet())
+        {
+            if (data != null)
+            {
+                respawnList.add(data.getValue().toNbt());
+            }
+        }
+
+        nbt.put("playerrespawns", respawnList);
         return nbt;
     }
 
@@ -159,6 +185,7 @@ public class RespawnLevelData extends SavedData
                 .get()
                 .getKey(structureStart.getStructure()));
 
+            newData.inhabitedStart = level.getChunk(newData.pos.x(), newData.pos.z()).getInhabitedTime();
             allStructureData.add(newData);
             return newData;
         });
