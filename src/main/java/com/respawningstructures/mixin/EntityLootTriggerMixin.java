@@ -2,7 +2,6 @@ package com.respawningstructures.mixin;
 
 import com.respawningstructures.structure.RespawnManager;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
@@ -19,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class EntityLootTriggerMixin extends AbstractMinecart
 {
     @Shadow
-    private ResourceLocation lootTable;
+    private ResourceKey<LootTable> lootTable;
 
     protected EntityLootTriggerMixin(final EntityType<?> p_38087_, final Level p_38088_)
     {
@@ -31,7 +30,7 @@ public abstract class EntityLootTriggerMixin extends AbstractMinecart
     {
         if (newTable == null && lootTable != null && !level().isClientSide())
         {
-            RespawnManager.onChestLooted((ServerLevel) level(), lootTable, blockPosition());
+            RespawnManager.onChestLooted((ServerLevel) level(), lootTable.location(), blockPosition());
         }
     }
 }
