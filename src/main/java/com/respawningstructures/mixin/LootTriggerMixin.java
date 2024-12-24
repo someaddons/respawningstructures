@@ -4,9 +4,7 @@ import com.respawningstructures.structure.RespawnManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.RandomizableContainer;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
@@ -14,6 +12,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootTable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import javax.annotation.Nullable;
 
@@ -32,13 +33,12 @@ public abstract class LootTriggerMixin extends BaseContainerBlockEntity implemen
         super(p_155076_, p_155077_, p_155078_);
     }
 
-    @Override
-    public void unpackLootTable(@Nullable Player player)
+    @Inject(method = "setLootTable(Lnet/minecraft/resources/ResourceKey;)V", at = @At("HEAD"))
+    private void onUnpack(final ResourceKey<LootTable> newTable, final CallbackInfo ci)
     {
-        if (lootTable != null && player instanceof ServerPlayer && this.hasLevel())
+        if (newTable == null && lootTable != null && level != null && !level.isClientSide())
         {
-            RespawnManager.onChestLooted((ServerLevel) player.level(), lootTable.location(), getBlockPos());
+            RespawnManager.onChestLooted((ServerLevel) level, lootTable.location(), this.worldPosition);
         }
-        RandomizableContainer.super.unpackLootTable(player);
     }
 }
