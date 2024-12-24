@@ -11,6 +11,7 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.tags.StructureTags;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -44,7 +45,7 @@ public class RespawnManager
      */
     public static StructureData getForPos(final ServerLevel level, final BlockPos pos, final boolean update)
     {
-        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
         return respawnData.getForPos(level, pos, update);
     }
 
@@ -194,7 +195,7 @@ public class RespawnManager
 
     public static void onExplosion(final Level level, final Explosion explosion, final List<BlockPos> affectedBlocks)
     {
-        final StructureData structureData = getForPos((ServerLevel) level, BlockPos.containing(((IExplosionPosition) explosion).getactualexplosionpos()), true);
+        final StructureData structureData = getForPos((ServerLevel) level, BlockPos.containing(explosion.center()), true);
         if (structureData != null)
         {
             structureData.blocksBroken += affectedBlocks.size() / 2;
@@ -220,7 +221,7 @@ public class RespawnManager
      */
     public static void onPlayerLogin(final ServerPlayer entity)
     {
-        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
         if (entity.getRespawnPosition() != null && entity.level().dimension() == entity.getRespawnDimension())
         {
             levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime())).lastUsageLevelTime =
@@ -236,7 +237,7 @@ public class RespawnManager
      */
     public static void onPlayerRespawn(final ServerPlayer entity)
     {
-        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
         if (entity.getRespawnPosition() != null && entity.level().dimension() == entity.getRespawnDimension())
         {
             levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime())).lastUsageLevelTime =
@@ -254,7 +255,7 @@ public class RespawnManager
     {
         for (final ServerLevel level : entity.server.getAllLevels())
         {
-            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
             Respawn respawn = levelData.playerRespawnTracker.get(entity.getUUID());
 
             if (respawn == null)
@@ -302,7 +303,7 @@ public class RespawnManager
             return;
         }
 
-        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
 
         for (final StructureData data : respawnData.getAllStructureData())
         {
@@ -334,7 +335,7 @@ public class RespawnManager
             return false;
         }
 
-        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
         if (respawnData == null)
         {
             return false;
@@ -604,7 +605,7 @@ public class RespawnManager
                     continue;
                 }
 
-                if (!entity.getItemBySlot(slot).isEmpty() && entity.getItemBySlot(slot).getEnchantmentTags().isEmpty())
+                if (!entity.getItemBySlot(slot).isEmpty() && !entity.getItemBySlot(slot).isEnchanted())
                 {
                     toEnchantItem = entity.getItemBySlot(slot);
                     enchantItemSlot = slot;
@@ -666,13 +667,18 @@ public class RespawnManager
 
             if (toEnchantItem != null)
             {
-                EnchantmentHelper.enchantItem(entity.getRandom(), toEnchantItem, respawnDifficulty, true);
+                EnchantmentHelper.enchantItem(entity.getRandom(),
+                    toEnchantItem,
+                    respawnDifficulty,
+                    entity.level().registryAccess(),
+                    entity.level().registryAccess().registryOrThrow(Registries.ENCHANTMENT)
+                        .getTag(EnchantmentTags.ON_RANDOM_LOOT));
                 entity.setDropChance(enchantItemSlot, 0.3f);
             }
 
             if (RespawningStructures.rand.nextInt(4) == 0)
             {
-                MobEffect randomEffect = randomEffects.get(RespawningStructures.rand.nextInt(randomEffects.size()));
+                Holder<MobEffect> randomEffect = randomEffects.get(RespawningStructures.rand.nextInt(randomEffects.size()));
                 if (!entity.hasEffect(randomEffect))
                 {
                     entity.addEffect(new MobEffectInstance(randomEffect, -1));
@@ -681,7 +687,7 @@ public class RespawnManager
         }
     }
 
-    private static List<MobEffect> randomEffects = List.of(MobEffects.DAMAGE_RESISTANCE,
+    private static List<Holder<MobEffect>> randomEffects = List.of(MobEffects.DAMAGE_RESISTANCE,
       MobEffects.FIRE_RESISTANCE,
       MobEffects.REGENERATION,
       MobEffects.DAMAGE_BOOST,

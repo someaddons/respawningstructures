@@ -48,7 +48,7 @@ public class EventHandler
      * Spawn additional or replace mobs during respawn(mark persistent)
      */
 
-    private final static TagKey<Block> REDSTONE = TagKey.create(Registries.BLOCK, new ResourceLocation(RespawningStructures.MOD_ID, "redstone"));
+    private final static TagKey<Block> REDSTONE = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(RespawningStructures.MOD_ID, "redstone"));
     private static long lastTime = 0;
 
     public static void onServerTick(final MinecraftServer server)
@@ -67,7 +67,7 @@ public class EventHandler
 
                 for (final ServerLevel level : server.getAllLevels())
                 {
-                    final RespawnLevelData data = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+                    final RespawnLevelData data = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
                     if (data != null)
                     {
                         data.increaseTime(60 * 5);

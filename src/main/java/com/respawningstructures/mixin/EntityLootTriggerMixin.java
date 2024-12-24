@@ -1,29 +1,36 @@
 package com.respawningstructures.mixin;
 
 import com.respawningstructures.structure.RespawnManager;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.vehicle.ContainerEntity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.AbstractMinecartContainer;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.loot.LootTable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ContainerEntity.class)
-public abstract interface EntityLootTriggerMixin
+@Mixin(AbstractMinecartContainer.class)
+public abstract class EntityLootTriggerMixin extends AbstractMinecart
 {
     @Shadow
-    public abstract ResourceLocation getLootTable();
+    private ResourceKey<LootTable> lootTable;
 
-    @Inject(method = "unpackChestVehicleLootTable", at = @At("HEAD"))
-    private void onUnpack(final Player player, final CallbackInfo ci)
+    protected EntityLootTriggerMixin(final EntityType<?> p_38087_, final Level p_38088_)
     {
-        if (getLootTable() != null && player instanceof ServerPlayer)
+        super(p_38087_, p_38088_);
+    }
+
+    @Inject(method = "setLootTable(Lnet/minecraft/resources/ResourceKey;)V", at = @At("HEAD"))
+    private void onUnpack(final ResourceKey<LootTable> newTable, final CallbackInfo ci)
+    {
+        if (newTable == null && lootTable != null && !level().isClientSide())
         {
-            RespawnManager.onChestLooted((ServerLevel) player.level(), getLootTable(), player.blockPosition());
+            RespawnManager.onChestLooted((ServerLevel) level(), lootTable.location(), blockPosition());
         }
     }
 }

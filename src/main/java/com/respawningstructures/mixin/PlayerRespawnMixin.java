@@ -3,6 +3,7 @@ package com.respawningstructures.mixin;
 import com.respawningstructures.structure.RespawnManager;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
+import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -12,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class PlayerRespawnMixin
 {
     @Inject(method = "respawn", at = @At("TAIL"))
-    private void onRespawn(final ServerPlayer serverPlayer, final boolean bl, final CallbackInfoReturnable<ServerPlayer> cir)
+    private void onRespawn(final ServerPlayer serverPlayer, final boolean bl, final Entity.RemovalReason removalReason, final CallbackInfoReturnable<ServerPlayer> cir)
     {
         RespawnManager.onPlayerRespawn(serverPlayer);
     }

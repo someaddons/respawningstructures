@@ -4,12 +4,14 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
@@ -21,6 +23,7 @@ import java.util.*;
 public class RespawnLevelData extends SavedData
 {
     public static final String ID = "respawningdungeonsdata";
+    public static SavedData.Factory<RespawnLevelData> RESPAWNLEVELDATAFACTORY = new SavedData.Factory<>(RespawnLevelData::new, RespawnLevelData::load, DataFixTypes.LEVEL);
 
     /**
      * Chunk section position to structure data matching map, multiple positions can point to the same structure
@@ -47,7 +50,7 @@ public class RespawnLevelData extends SavedData
 
     }
 
-    public static RespawnLevelData load(CompoundTag tag)
+    public static RespawnLevelData load(CompoundTag tag, HolderLookup.Provider provider)
     {
         RespawnLevelData data = new RespawnLevelData();
         data.read(tag);
@@ -84,7 +87,7 @@ public class RespawnLevelData extends SavedData
     }
 
     @Override
-    public CompoundTag save(CompoundTag nbt)
+    public CompoundTag save(CompoundTag nbt, HolderLookup.Provider provider)
     {
         nbt.putLong("elapsedTime", elapsedTime);
 

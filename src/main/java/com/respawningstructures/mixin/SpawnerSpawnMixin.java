@@ -1,7 +1,6 @@
 package com.respawningstructures.mixin;
 
 import com.respawningstructures.event.EventHandler;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
@@ -17,10 +16,11 @@ public class SpawnerSpawnMixin
 {
     @Inject(method = "finalizeSpawn", at = @At(value = "RETURN"))
     private void onSpawn(
-      final ServerLevelAccessor serverLevelAccessor,
-      final DifficultyInstance difficultyInstance,
-      final MobSpawnType mobSpawnType,
-      final SpawnGroupData spawnGroupData, final CompoundTag compoundTag, final CallbackInfoReturnable<SpawnGroupData> cir)
+        final ServerLevelAccessor serverLevelAccessor,
+        final DifficultyInstance difficultyInstance,
+        final MobSpawnType mobSpawnType,
+        final SpawnGroupData spawnGroupData,
+        final CallbackInfoReturnable<SpawnGroupData> cir)
     {
         EventHandler.onEntitySpawned((Mob) (Object) this, mobSpawnType);
     }

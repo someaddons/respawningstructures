@@ -23,7 +23,7 @@ public class StructureData
     /**
      * Empty dummy used for "No structure found" at a given pos
      */
-    public static final StructureData EMPTY = new StructureData(BlockPos.ZERO, new ResourceLocation("dummy"));
+    public static final StructureData EMPTY = new StructureData(BlockPos.ZERO, ResourceLocation.fromNamespaceAndPath("dummy", "dummy"));
 
     /**
      * Static version to handle potential upgrade conflicts easily
@@ -223,7 +223,7 @@ public class StructureData
             return RespawnStatus.BLACKLISTED;
         }
 
-        if (lastActivity == 0 || (level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID).getLevelTime() - lastActivity)
+        if (lastActivity == 0 || (level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID).getLevelTime() - lastActivity)
             < RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L)
         {
             if (lastActivity == 0)
@@ -249,7 +249,7 @@ public class StructureData
 
         if (status == RespawnStatus.PENDING_RESPAWN)
         {
-            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
             for (Iterator<Respawn> iterator = levelData.playerRespawnTracker.values().iterator(); iterator.hasNext(); )
             {
                 final Respawn respawnData = iterator.next();
@@ -341,7 +341,7 @@ public class StructureData
         if ((blocksPlaced * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 10000d)
             && (blocksBroken * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 100000d))
         {
-            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
             if ((levelData.getLevelTime() - lastActivity) > 60 * 60 * 24 * 60 && level.isLoaded(this.pos.center()))
             {
                 blocksPlaced = (int) (blocksPlaced * 0.99);
@@ -390,7 +390,7 @@ public class StructureData
     public Component getStats(final ServerLevel level)
     {
         int dist = Integer.MAX_VALUE;
-        final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
         for (Iterator<Respawn> iterator = levelData.playerRespawnTracker.values().iterator(); iterator.hasNext(); )
         {
             final Respawn respawnData = iterator.next();
