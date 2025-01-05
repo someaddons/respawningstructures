@@ -39,6 +39,7 @@ public class RespawnManager
 {
     public volatile static StructureData                     respawnInProgress = null;
     public static          Object2IntOpenHashMap<EntityType> entityCounts      = new Object2IntOpenHashMap<>();
+    public static Object2IntOpenHashMap<BlockPos> heightMap = null;
 
     /**
      * Gets the structure data for a given pos, does trigger updates to that data
@@ -84,7 +85,7 @@ public class RespawnManager
         final StructureData structureData = getForPos(level, pos, true);
         if (structureData != null)
         {
-                structureData.containerLooted++;
+            structureData.containerLooted++;
         }
     }
 
@@ -535,6 +536,7 @@ public class RespawnManager
 
         structureData.onRespawnReset();
         respawnInProgress = null;
+        heightMap = null;
 
         return true;
     }
