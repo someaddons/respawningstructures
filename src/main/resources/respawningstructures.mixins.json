@@ -8,6 +8,7 @@
     "ChunkSetStartBBFix",
     "ContainerDropRespawnMixin",
     "EntityLootTriggerMixin",
+    "GravityProcessorMixin",
     "LevelChunkBlockEntityHookMixin",
     "LevelChunkPostProcessMixin",
     "LootTriggerMixin",
@@ -15,6 +16,7 @@
     "ServerPlayerSpawnPosMixin",
     "SpawnerActiveMixin",
     "StructureStartBBFixMixin",
+    "StructureTemplateProcessRespawnInfoMixin",
     "TemplateStructurePieceMixin"
   ],
   "client": [
