@@ -11,6 +11,7 @@
     "EndPortalMixin",
     "EntityLootTriggerMixin",
     "ExplosionMixin",
+    "GravityProcessorMixin",
     "LevelChunkBlockEntityHookMixin",
     "LevelChunkPostProcessMixin",
     "LivingDeathEvent",
@@ -24,6 +25,7 @@
     "SpawnerActiveMixin",
     "SpawnerSpawnMixin",
     "StructureStartBBFixMixin",
+    "StructureTemplateProcessRespawnInfoMixin",
     "TemplateStructurePieceMixin"
   ],
   "client": [
