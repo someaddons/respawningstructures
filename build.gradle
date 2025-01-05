@@ -106,6 +106,8 @@ dependencies {
     implementation fg.deobf("curse.maven:mowzie-250498:5399941")
     implementation fg.deobf("curse.maven:gecko-388172:5675221")
     implementation fg.deobf("curse.maven:spark-361579:4587309")
+    implementation fg.deobf("curse.maven:townsandtowers-626761:4593117")
+    implementation fg.deobf("curse.maven:townsandtowerslib-856996:5869180")
 }
 
 jar {
