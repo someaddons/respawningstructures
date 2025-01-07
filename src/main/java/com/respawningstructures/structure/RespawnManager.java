@@ -261,7 +261,7 @@ public class RespawnManager
 
             if (respawn == null)
             {
-                if (level.dimension() == entity.getRespawnDimension())
+                if (level.dimension() == entity.getRespawnDimension() && entity.getRespawnPosition() != null)
                 {
                     levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(),
                         uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime()));
