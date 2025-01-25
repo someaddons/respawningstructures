@@ -13,7 +13,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -36,7 +36,7 @@ public class Command
                   final ServerLevel world = context.getSource().getLevel();
                   final Map<Structure, LongSet> structures = new HashMap<>();
 
-                  final ChunkPos start = new ChunkPos(BlockPos.containing(context.getSource().getPosition()));
+                  final ChunkPos start = new ChunkPos(new BlockPos(context.getSource().getPosition()));
 
                   for (final Map.Entry<Structure, LongSet> entry : world.structureManager()
                     .getAllStructuresAt(new BlockPos((start.x) << 4, 0, (start.z) << 4))
@@ -73,7 +73,7 @@ public class Command
                   }
 
                   final List<Map.Entry<BlockPos, StructureStart>> sortedStructures = new ArrayList<>(structurePositions.entrySet());
-                  sortedStructures.sort(Comparator.comparingDouble(p -> p.getKey().distSqr(BlockPos.containing(context.getSource().getPosition()))));
+                  sortedStructures.sort(Comparator.comparingDouble(p -> p.getKey().distSqr(new BlockPos(context.getSource().getPosition()))));
 
                   if (sortedStructures.isEmpty())
                   {
@@ -87,7 +87,7 @@ public class Command
                     .sendSystemMessage(Component.literal("Respawning structure: " +
                                                            context.getSource()
                                                              .registryAccess()
-                                                             .registry(Registries.STRUCTURE)
+                                                               .registry(BuiltinRegistries.STRUCTURES.key())
                                                              .get()
                                                              .getKey(sortedStructures.get(0).getValue().getStructure()))
                       .append(Component.literal(" at: " + sortedStructures.get(0).getKey()).withStyle(ChatFormatting.YELLOW)
@@ -114,7 +114,7 @@ public class Command
                     final ServerLevel world = context.getSource().getLevel();
                     final Map<Structure, LongSet> structures = new HashMap<>();
 
-                    final ChunkPos start = new ChunkPos(BlockPos.containing(context.getSource().getPosition()));
+                    final ChunkPos start = new ChunkPos(new BlockPos(context.getSource().getPosition()));
 
                     for (final Map.Entry<Structure, LongSet> entry : world.structureManager()
                       .getAllStructuresAt(new BlockPos((start.x) << 4, 0, (start.z) << 4))
@@ -151,7 +151,7 @@ public class Command
                     }
 
                     final List<Map.Entry<BlockPos, StructureStart>> sortedStructures = new ArrayList<>(structurePositions.entrySet());
-                    sortedStructures.sort(Comparator.comparingDouble(p -> p.getKey().distSqr(BlockPos.containing(context.getSource().getPosition()))));
+                    sortedStructures.sort(Comparator.comparingDouble(p -> p.getKey().distSqr(new BlockPos(context.getSource().getPosition()))));
 
                     if (sortedStructures.isEmpty())
                     {
@@ -162,12 +162,8 @@ public class Command
                     }
 
                     context.getSource()
-                      .sendSystemMessage(Component.literal("Set respawn to " + shouldRespawn + " for structure: " +
-                                                             context.getSource()
-                                                               .registryAccess()
-                                                               .registry(Registries.STRUCTURE)
-                                                               .get()
-                                                               .getKey(sortedStructures.get(0).getValue().getStructure()))
+                        .sendSystemMessage(Component.literal(
+                                "Set respawn to " + shouldRespawn + " for structure: " + BuiltinRegistries.STRUCTURES.getKey(sortedStructures.get(0).getValue().getStructure()))
                         .append(Component.literal(" at: " + sortedStructures.get(0).getKey()).withStyle(ChatFormatting.YELLOW)
                           .withStyle(style ->
                                        style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
@@ -195,7 +191,7 @@ public class Command
                   final ServerLevel world = context.getSource().getLevel();
                   final Map<Structure, LongSet> structures = new HashMap<>();
 
-                  final ChunkPos start = new ChunkPos(BlockPos.containing(context.getSource().getPosition()));
+                  final ChunkPos start = new ChunkPos(new BlockPos(context.getSource().getPosition()));
 
                   for (final Map.Entry<Structure, LongSet> entry : world.structureManager()
                     .getAllStructuresAt(new BlockPos((start.x) << 4, 0, (start.z) << 4))
@@ -232,7 +228,7 @@ public class Command
                   }
 
                   final List<Map.Entry<BlockPos, StructureStart>> sortedStructures = new ArrayList<>(structurePositions.entrySet());
-                  sortedStructures.sort(Comparator.comparingDouble(p -> p.getKey().distSqr(BlockPos.containing(context.getSource().getPosition()))));
+                  sortedStructures.sort(Comparator.comparingDouble(p -> p.getKey().distSqr(new BlockPos(context.getSource().getPosition()))));
 
                   if (sortedStructures.isEmpty())
                   {
@@ -268,7 +264,7 @@ public class Command
               .then(Commands.argument("position", BlockPosArgument.blockPos())
                 .executes(context ->
                 {
-                    final BlockPos pos = BlockPosArgument.getBlockPos(context, "position");
+                    final BlockPos pos = BlockPosArgument.getLoadedBlockPos(context, "position");
 
                     final StructureData data = RespawnManager.getForPos(context.getSource().getLevel(), pos, false);
 

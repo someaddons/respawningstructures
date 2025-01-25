@@ -45,14 +45,14 @@ public class GravityProcessorMixin
             return;
         }
 
-        if (!result.state().isAir() && offset < 0)
+        if (!result.state.isAir() && offset < 0)
         {
             boolean existsBelow = false;
 
             for (int i = 0; i < 7; i++)
             {
-                final BlockState prevState = levelReader.getBlockState(result.pos().below(relativeInfo.pos().getY() + i));
-                if (prevState.getBlock() == result.state().getBlock())
+                final BlockState prevState = levelReader.getBlockState(result.pos.below(relativeInfo.pos.getY() + i));
+                if (prevState.getBlock() == result.state.getBlock())
                 {
                     existsBelow = true;
                     break;
@@ -61,10 +61,10 @@ public class GravityProcessorMixin
 
             if (existsBelow)
             {
-                int relativeY = relativeInfo.pos().getY();
+                int relativeY = relativeInfo.pos.getY();
                 if (RespawnManager.heightMap != null)
                 {
-                    int res = RespawnManager.heightMap.getInt(new BlockPos(relativeInfo.pos().getX(), 0, relativeInfo.pos().getZ()));
+                    int res = RespawnManager.heightMap.getInt(new BlockPos(relativeInfo.pos.getX(), 0, relativeInfo.pos.getZ()));
                     if (res > 0)
                     {
                         relativeY = res;
@@ -72,11 +72,11 @@ public class GravityProcessorMixin
                 }
 
                 BlockPos fixedpos =
-                    new BlockPos(result.pos().getX(),
-                        Math.min(p_74111_.getY() + 10, Math.max(p_74110_.getY() - 10, result.pos().getY() - (relativeY))),
-                        result.pos().getZ());
+                    new BlockPos(result.pos.getX(),
+                        Math.min(p_74111_.getY() + 10, Math.max(p_74110_.getY() - 10, result.pos.getY() - (relativeY))),
+                        result.pos.getZ());
 
-                if (result.state().is(BlockTags.CROPS))
+                if (result.state.is(BlockTags.CROPS))
                 {
                     // Adjust crops one lower to replace themselves
                     if (levelReader.getBlockState(fixedpos.below()).is(BlockTags.CROPS))
@@ -92,17 +92,17 @@ public class GravityProcessorMixin
                     }
                 }
 
-                if (result.state().getBlock() == Blocks.TORCH && levelReader.getBlockState(fixedpos).isAir())
+                if (result.state.getBlock() == Blocks.TORCH && levelReader.getBlockState(fixedpos).isAir())
                 {
                     RespawningStructures.LOGGER.warn("t ");
                 }
 
-                if (result.state().is(BlockTags.CROPS) && levelReader.getBlockState(fixedpos.above()).is(BlockTags.CROPS))
+                if (result.state.is(BlockTags.CROPS) && levelReader.getBlockState(fixedpos.above()).is(BlockTags.CROPS))
                 {
                     RespawningStructures.LOGGER.warn("awew");
                 }
 
-                cir.setReturnValue(new StructureTemplate.StructureBlockInfo(fixedpos, result.state(), result.nbt()));
+                cir.setReturnValue(new StructureTemplate.StructureBlockInfo(fixedpos, result.state, result.nbt));
             }
             else
             {
@@ -111,20 +111,20 @@ public class GravityProcessorMixin
         }
 
         // Place below crops instead of within
-        if (!result.state().is(BlockTags.CROPS) && levelReader.getBlockState(result.pos()).is(BlockTags.CROPS))
+        if (!result.state.is(BlockTags.CROPS) && levelReader.getBlockState(result.pos).is(BlockTags.CROPS))
         {
-            cir.setReturnValue(new StructureTemplate.StructureBlockInfo(result.pos().below(), result.state(), result.nbt()));
+            cir.setReturnValue(new StructureTemplate.StructureBlockInfo(result.pos.below(), result.state, result.nbt));
         }
 
-        final int y = result.pos().getY();
+        final int y = result.pos.getY();
 
         // Limit y changes
         if (y > p_74110_.getY() + 10 || y < p_74110_.getY() - 10)
         {
-            int relativeY = relativeInfo.pos().getY();
+            int relativeY = relativeInfo.pos.getY();
             if (RespawnManager.heightMap != null)
             {
-                int res = RespawnManager.heightMap.getInt(new BlockPos(relativeInfo.pos().getX(), 0, relativeInfo.pos().getZ()));
+                int res = RespawnManager.heightMap.getInt(new BlockPos(relativeInfo.pos.getX(), 0, relativeInfo.pos.getZ()));
                 if (res > 0)
                 {
                     relativeY = res;
@@ -132,10 +132,10 @@ public class GravityProcessorMixin
             }
 
             BlockPos fixedpos =
-                new BlockPos(result.pos().getX(),
-                    Math.min(p_74111_.getY() + 10, Math.max(p_74110_.getY() - 10, result.pos().getY() - relativeY)),
-                    result.pos().getZ());
-            cir.setReturnValue(new StructureTemplate.StructureBlockInfo(fixedpos, result.state(), result.nbt()));
+                new BlockPos(result.pos.getX(),
+                    Math.min(p_74111_.getY() + 10, Math.max(p_74110_.getY() - 10, result.pos.getY() - relativeY)),
+                    result.pos.getZ());
+            cir.setReturnValue(new StructureTemplate.StructureBlockInfo(fixedpos, result.state, result.nbt));
         }
     }
 }

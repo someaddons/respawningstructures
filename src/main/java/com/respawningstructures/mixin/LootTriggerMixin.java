@@ -23,7 +23,7 @@ public abstract class LootTriggerMixin extends BaseContainerBlockEntity
 {
     @Shadow
     @Nullable
-    protected ResourceLocation lootTable;
+    public ResourceLocation lootTable;
 
     protected LootTriggerMixin(
       final BlockEntityType<?> p_155076_,
@@ -38,7 +38,7 @@ public abstract class LootTriggerMixin extends BaseContainerBlockEntity
     {
         if (lootTable != null && player instanceof ServerPlayer && this.hasLevel())
         {
-            RespawnManager.onChestLooted((ServerLevel) player.level(), lootTable, getBlockPos());
+            RespawnManager.onChestLooted((ServerLevel) player.level, lootTable, getBlockPos());
         }
     }
 }

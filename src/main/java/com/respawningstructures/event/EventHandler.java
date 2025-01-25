@@ -3,24 +3,23 @@ package com.respawningstructures.event;
 import com.respawningstructures.RespawningStructures;
 import com.respawningstructures.structure.RespawnLevelData;
 import com.respawningstructures.structure.RespawnManager;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.MobSpawnEvent;
+import net.minecraftforge.event.entity.living.LivingSpawnEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Calendar;
 
@@ -29,7 +28,7 @@ import java.util.Calendar;
  */
 public class EventHandler
 {
-    private final static TagKey<Block> REDSTONE = TagKey.create(Registries.BLOCK, new ResourceLocation(RespawningStructures.MOD_ID, "redstone"));
+    private final static TagKey<Block> REDSTONE = TagKey.create(ForgeRegistries.BLOCKS.getRegistryKey(), new ResourceLocation(RespawningStructures.MOD_ID, "redstone"));
     private static long lastTime = 0;
 
     @SubscribeEvent
@@ -130,7 +129,7 @@ public class EventHandler
     @SubscribeEvent
     public static void onMobKilled(final LivingDeathEvent event)
     {
-        if (!event.getEntity().level().isClientSide() && event.getSource().getEntity() instanceof ServerPlayer)
+        if (!event.getEntity().level.isClientSide() && event.getSource().getEntity() instanceof ServerPlayer)
         {
             RespawnManager.onMobKilled(event.getEntity());
         }
@@ -150,9 +149,10 @@ public class EventHandler
     }
 
     @SubscribeEvent
-    public static void onEntityAdded(final MobSpawnEvent.FinalizeSpawn event)
+    public static void onEntityAdded(final LivingSpawnEvent.SpecialSpawn event)
     {
-        if (!event.getLevel().isClientSide() && event.getSpawnType() == MobSpawnType.SPAWNER && event.getEntity() != null)
+        // TODO:Test
+        if (!event.getLevel().isClientSide() && event.getSpawner() != null && event.getSpawner().getSpawnerEntity() != null)
         {
             RespawnManager.onSpawnerSpawn(event.getEntity());
         }

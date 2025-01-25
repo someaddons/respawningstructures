@@ -27,9 +27,9 @@ public abstract class EntityLootTriggerMixin extends AbstractMinecart
     @Inject(method = "setLootTable(Lnet/minecraft/resources/ResourceLocation;)V", at = @At("HEAD"))
     private void onUnpack(final ResourceLocation newTable, final CallbackInfo ci)
     {
-        if (newTable == null && lootTable != null && !level().isClientSide())
+        if (newTable == null && lootTable != null && !level.isClientSide())
         {
-            RespawnManager.onChestLooted((ServerLevel) level(), lootTable, blockPosition());
+            RespawnManager.onChestLooted((ServerLevel) level, lootTable, blockPosition());
         }
     }
 }

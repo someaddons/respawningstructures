@@ -2,11 +2,8 @@ package com.respawningstructures.structure;
 
 import com.respawningstructures.RespawningStructures;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.core.SectionPos;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.*;
+import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -118,7 +115,7 @@ public class RespawnManager
      */
     public static void onMobKilled(final LivingEntity entity)
     {
-        final StructureData structureData = getForPos((ServerLevel) entity.level(), entity.blockPosition(), true);
+        final StructureData structureData = getForPos((ServerLevel) entity.level, entity.blockPosition(), true);
         if (structureData != null)
         {
             structureData.mobsKilled++;
@@ -136,7 +133,7 @@ public class RespawnManager
      */
     public static void onBlockBreak(final ServerPlayer player, final BlockPos pos)
     {
-        final StructureData structureData = getForPos((ServerLevel) player.level(), pos, true);
+        final StructureData structureData = getForPos((ServerLevel) player.level, pos, true);
         if (structureData != null)
         {
             structureData.blocksBroken++;
@@ -148,7 +145,7 @@ public class RespawnManager
      */
     public static void onLightPlaced(final ServerPlayer player, final BlockPos pos)
     {
-        final StructureData structureData = getForPos((ServerLevel) player.level(), pos, true);
+        final StructureData structureData = getForPos((ServerLevel) player.level, pos, true);
         if (structureData != null)
         {
             structureData.lightsPlaced++;
@@ -160,7 +157,7 @@ public class RespawnManager
      */
     public static void onRedstonePlaced(final ServerPlayer player, final BlockPos pos)
     {
-        final StructureData structureData = getForPos((ServerLevel) player.level(), pos, true);
+        final StructureData structureData = getForPos((ServerLevel) player.level, pos, true);
         if (structureData != null)
         {
             structureData.redstonePlaced++;
@@ -175,7 +172,7 @@ public class RespawnManager
      */
     public static void onRedstoneDestroyed(final ServerPlayer player, final BlockPos pos)
     {
-        final StructureData structureData = getForPos((ServerLevel) player.level(), pos, true);
+        final StructureData structureData = getForPos((ServerLevel) player.level, pos, true);
         if (structureData != null)
         {
             structureData.redstonePlaced = Math.max(0, structureData.redstonePlaced - 1);
@@ -187,7 +184,7 @@ public class RespawnManager
      */
     public static void onBlockPlaced(final ServerPlayer player, final BlockPos pos)
     {
-        final StructureData structureData = getForPos((ServerLevel) player.level(), pos, true);
+        final StructureData structureData = getForPos((ServerLevel) player.level, pos, true);
         if (structureData != null)
         {
             structureData.blocksPlaced++;
@@ -196,7 +193,7 @@ public class RespawnManager
 
     public static void onExplosion(final Level level, final Explosion explosion, final List<BlockPos> affectedBlocks)
     {
-        final StructureData structureData = getForPos((ServerLevel) level, BlockPos.containing(explosion.getPosition()), true);
+        final StructureData structureData = getForPos((ServerLevel) level, new BlockPos(explosion.getPosition()), true);
         if (structureData != null)
         {
             structureData.blocksBroken += affectedBlocks.size() / 2;
@@ -208,7 +205,7 @@ public class RespawnManager
      */
     public static void onPlayerDeath(final ServerPlayer player)
     {
-        final StructureData structureData = getForPos((ServerLevel) player.level(), player.blockPosition(), true);
+        final StructureData structureData = getForPos((ServerLevel) player.level, player.blockPosition(), true);
         if (structureData != null)
         {
             structureData.playerDeaths++;
@@ -222,8 +219,8 @@ public class RespawnManager
      */
     public static void onPlayerLogin(final ServerPlayer entity)
     {
-        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
-        if (entity.getRespawnPosition() != null && entity.level().dimension() == entity.getRespawnDimension())
+        final RespawnLevelData levelData = ((ServerLevel) entity.level).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        if (entity.getRespawnPosition() != null && entity.level.dimension() == entity.getRespawnDimension())
         {
             levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime())).lastUsageLevelTime =
                 levelData.getLevelTime();
@@ -238,8 +235,8 @@ public class RespawnManager
      */
     public static void onPlayerRespawn(final ServerPlayer entity)
     {
-        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
-        if (entity.getRespawnPosition() != null && entity.level().dimension() == entity.getRespawnDimension())
+        final RespawnLevelData levelData = ((ServerLevel) entity.level).getDataStorage().computeIfAbsent(RespawnLevelData::load, RespawnLevelData::new, RespawnLevelData.ID);
+        if (entity.getRespawnPosition() != null && entity.level.dimension() == entity.getRespawnDimension())
         {
             levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime())).lastUsageLevelTime =
                 levelData.getLevelTime();
@@ -285,7 +282,7 @@ public class RespawnManager
 
     public static void onPortalUsage(final ServerPlayer player, final BlockPos pos)
     {
-        final StructureData structureData = getForPos((ServerLevel) player.level(), pos, true);
+        final StructureData structureData = getForPos((ServerLevel) player.level, pos, true);
         if (structureData != null)
         {
             structureData.portalUsage++;
@@ -403,7 +400,7 @@ public class RespawnManager
         {
             if (checkLoaded)
             {
-                if (!boundingbox.isInside(piece.getBoundingBox().maxX(), piece.getBoundingBox().maxY(), piece.getBoundingBox().maxZ()))
+                if (!boundingbox.isInside(new Vec3i(piece.getBoundingBox().maxX(), piece.getBoundingBox().maxY(), piece.getBoundingBox().maxZ())))
                 {
                     if (!level.hasChunk(piece.getBoundingBox().maxX() >> 4, piece.getBoundingBox().maxZ() >> 4))
                     {
@@ -411,7 +408,7 @@ public class RespawnManager
                     }
                 }
 
-                if (!boundingbox.isInside(piece.getBoundingBox().minX(), piece.getBoundingBox().minY(), piece.getBoundingBox().minZ()))
+                if (!boundingbox.isInside(new Vec3i(piece.getBoundingBox().minX(), piece.getBoundingBox().minY(), piece.getBoundingBox().minZ())))
                 {
                     if (!level.hasChunk(piece.getBoundingBox().minX() >> 4, piece.getBoundingBox().minZ() >> 4))
                     {
@@ -470,8 +467,8 @@ public class RespawnManager
             }
         }
 
-        Registry<Structure> structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
-        Optional<Holder.Reference<Structure>> holder = structureRegistry.getHolder(structureRegistry.getId(structureStart.getStructure()));
+        Registry<Structure> structureRegistry = level.registryAccess().registryOrThrow(BuiltinRegistries.STRUCTURES.key());
+        Optional<Holder<Structure>> holder = structureRegistry.getHolder(structureRegistry.getId(structureStart.getStructure()));
         if (holder.isPresent() && holder.get().is(StructureTags.VILLAGE))
         {
             final List<StructurePiece> pieces = new ArrayList<>(structureStart.getPieces());
@@ -488,7 +485,7 @@ public class RespawnManager
             structureStart = new StructureStart(structureStart.getStructure(), structureStart.getChunkPos(), structureStart.getReferences(), new PiecesContainer(pieces));
         }
 
-        if (holder.isPresent() && holder.get().key().location().toString().contains("stronghold"))
+        if (holder.isPresent() && holder.get().unwrapKey().isPresent() && holder.get().unwrapKey().get().location().toString().contains("stronghold"))
         {
             final List<StructurePiece> pieces = new ArrayList<>(structureStart.getPieces());
 
@@ -519,7 +516,8 @@ public class RespawnManager
               chunPos);
             level.getChunk(chunPos.x, chunPos.z).postProcessGeneration();
 
-            final ClientboundLevelChunkWithLightPacket packet = new ClientboundLevelChunkWithLightPacket(level.getChunk(chunPos.x, chunPos.z), level.getLightEngine(), null, null);
+            final ClientboundLevelChunkWithLightPacket packet =
+                new ClientboundLevelChunkWithLightPacket(level.getChunk(chunPos.x, chunPos.z), level.getLightEngine(), null, null, true);
             for (final ServerPlayer player : level.getChunkSource().chunkMap.getPlayers(chunPos, false))
             {
                 player.connection.send(packet);
@@ -575,7 +573,7 @@ public class RespawnManager
      */
     public static void onSpawnerSpawn(final Mob entity)
     {
-        final StructureData structureData = getForPos((ServerLevel) entity.level(), entity.blockPosition(), true);
+        final StructureData structureData = getForPos((ServerLevel) entity.level, entity.blockPosition(), true);
         if (structureData != null && structureData.respawns > 0)
         {
             applyRespawnBonus(entity, structureData);

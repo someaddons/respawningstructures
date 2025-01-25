@@ -6,7 +6,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -166,7 +166,7 @@ public class StructureData
 
         for (final Map.Entry<Structure, LongSet> entry : level.structureManager().getAllStructuresAt(pos.center()).entrySet())
         {
-            if (id.equals(level.registryAccess().registry(Registries.STRUCTURE).get().getKey(entry.getKey())))
+            if (id.equals(level.registryAccess().registry(BuiltinRegistries.STRUCTURES.key()).get().getKey(entry.getKey())))
             {
                 level.structureManager().fillStartsForStructure(entry.getKey(), entry.getValue(),
                     structureStart ->

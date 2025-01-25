@@ -5,7 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -181,7 +181,7 @@ public class RespawnLevelData extends SavedData
         final StructureData data = structurePositions.computeIfAbsent(SectionPos.asLong(structureStart.getBoundingBox().getCenter()), (p) -> {
             StructureData newData = new StructureData(structureStart.getBoundingBox().getCenter(),
               level.registryAccess()
-                .registry(Registries.STRUCTURE)
+                  .registry(BuiltinRegistries.STRUCTURES.key())
                 .get()
                 .getKey(structureStart.getStructure()));
 

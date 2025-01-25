@@ -3,7 +3,7 @@ package com.respawningstructures.mixin;
 import com.respawningstructures.structure.RespawnManager;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.levelgen.structure.templatesystem.GravityProcessor;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
@@ -17,12 +17,12 @@ import java.util.List;
 @Mixin(StructureTemplate.class)
 public class StructureTemplateProcessRespawnInfoMixin
 {
-    @Inject(method = "processBlockInfos(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructurePlaceSettings;Ljava/util/List;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate;)Ljava/util/List;",
+    @Inject(method = "processBlockInfos(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructurePlaceSettings;Ljava/util/List;Lnet/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate;)Ljava/util/List;",
         at = @At(value = "HEAD"), remap = false)
     private static void prepareRespawnHeightData(
-        final ServerLevelAccessor p_278297_,
-        final BlockPos from,
-        final BlockPos to,
+        final LevelAccessor p_74518_,
+        final BlockPos p_74519_,
+        final BlockPos p_74520_,
         final StructurePlaceSettings structurePlaceSettings,
         final List<StructureTemplate.StructureBlockInfo> structureBlockInfos,
         final StructureTemplate template,
@@ -50,12 +50,12 @@ public class StructureTemplateProcessRespawnInfoMixin
 
             for (var blockInfo : structureBlockInfos)
             {
-                if (blockInfo.pos().getY() > 0 && !blockInfo.state().isAir())
+                if (blockInfo.pos.getY() > 0 && !blockInfo.state.isAir())
                 {
-                    final int height = heightMap.getInt(new BlockPos(blockInfo.pos().getX(), 0, blockInfo.pos().getZ()));
-                    if (height < blockInfo.pos().getY())
+                    final int height = heightMap.getInt(new BlockPos(blockInfo.pos.getX(), 0, blockInfo.pos.getZ()));
+                    if (height < blockInfo.pos.getY())
                     {
-                        heightMap.put(new BlockPos(blockInfo.pos().getX(), 0, blockInfo.pos().getZ()), blockInfo.pos().getY());
+                        heightMap.put(new BlockPos(blockInfo.pos.getX(), 0, blockInfo.pos.getZ()), blockInfo.pos.getY());
                     }
                 }
             }
