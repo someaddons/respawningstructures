@@ -254,7 +254,7 @@ public class StructureData
             {
                 final Respawn respawnData = iterator.next();
                 final BlockPos center = pos.center();
-                if (respawnData.position.distManhattan(center) < RespawningStructures.config.getCommonConfig().playerRespawnDist
+                if (dist2D(respawnData.position, center) < RespawningStructures.config.getCommonConfig().playerRespawnDist
                     && (levelData.getLevelTime() - respawnData.lastUsageLevelTime) < 60 * 60 * 24 * 21)
                 {
                     lastActivity = levelData.getLevelTime() - (RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L) / 2;
@@ -395,12 +395,11 @@ public class StructureData
         {
             final Respawn respawnData = iterator.next();
             final BlockPos center = pos.center();
-            if (respawnData.position.distManhattan(center) < RespawningStructures.config.getCommonConfig().playerRespawnDist
-                && (levelData.getLevelTime() - respawnData.lastUsageLevelTime) < 60 * 60 * 24 * 21)
+            if ((levelData.getLevelTime() - respawnData.lastUsageLevelTime) < 60 * 60 * 24 * 21)
             {
-                if (respawnData.position.distManhattan(center) < dist)
+                if (dist2D(respawnData.position, center) < dist)
                 {
-                    dist = respawnData.position.distManhattan(center);
+                    dist = dist2D(respawnData.position, center);
                 }
             }
 
@@ -430,6 +429,13 @@ public class StructureData
             .append(Component.literal(" Spawner broken: " + spawnerBreak).withStyle(ChatFormatting.WHITE))
             .append(Component.literal(" Nearest player spawn: " + dist).withStyle(ChatFormatting.BLUE))
             .append(Component.literal(" Inhabited time pct: " + inhabitedTimePct).withStyle(ChatFormatting.WHITE));
+    }
+
+    public static int dist2D(final BlockPos pos, final BlockPos pos2)
+    {
+        final int xDiff = pos.getX() - pos2.getX();
+        final int zDiff = pos.getZ() - pos2.getZ();
+        return (int) Math.sqrt(xDiff * xDiff + zDiff * zDiff);
     }
 
     public enum RespawnStatus
