@@ -198,7 +198,16 @@ public class StructureData
     {
         if (canRespawn(level) == RespawnStatus.PENDING_RESPAWN)
         {
-            return RespawnManager.respawnStructure(level, this, true);
+            try
+            {
+                return RespawnManager.respawnStructure(level, this, true);
+            }
+            catch (Exception e)
+            {
+                RespawningStructures.LOGGER.warn("Error during respawning structure: " + this.id + " blacklisting structure type", e);
+                RespawningStructures.config.getCommonConfig().blacklistedStructures.add(id.toString());
+                RespawningStructures.config.save();
+            }
         }
 
         return false;
