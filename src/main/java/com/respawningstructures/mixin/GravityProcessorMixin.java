@@ -1,6 +1,5 @@
 package com.respawningstructures.mixin;
 
-import com.respawningstructures.RespawningStructures;
 import com.respawningstructures.structure.RespawnManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
@@ -92,22 +91,15 @@ public class GravityProcessorMixin
                     }
                 }
 
-                if (result.state().getBlock() == Blocks.TORCH && levelReader.getBlockState(fixedpos).isAir())
-                {
-                    RespawningStructures.LOGGER.warn("t ");
-                }
-
-                if (result.state().is(BlockTags.CROPS) && levelReader.getBlockState(fixedpos.above()).is(BlockTags.CROPS))
-                {
-                    RespawningStructures.LOGGER.warn("awew");
-                }
-
                 cir.setReturnValue(new StructureTemplate.StructureBlockInfo(fixedpos, result.state(), result.nbt()));
             }
-            else
-            {
+        }
 
-            }
+        // Do no place ontop of leaves
+        if (levelReader.getBlockState(cir.getReturnValue().pos().below()).is(BlockTags.LEAVES))
+        {
+            cir.setReturnValue(null);
+            return;
         }
 
         // Place below crops instead of within
