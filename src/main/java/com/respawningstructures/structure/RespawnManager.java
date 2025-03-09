@@ -11,6 +11,7 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.tags.StructureTags;
 import net.minecraft.world.effect.MobEffect;
@@ -30,16 +31,15 @@ import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 import net.minecraft.world.level.levelgen.structure.structures.*;
 import net.minecraft.world.phys.AABB;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class RespawnManager
 {
     public volatile static StructureData                     respawnInProgress = null;
     public static          Object2IntOpenHashMap<EntityType> entityCounts      = new Object2IntOpenHashMap<>();
     public static Object2IntOpenHashMap<BlockPos> heightMap = null;
+    public static TicketType<ChunkPos> RESPAWN_TICKET = TicketType.create("respawningstructures", Comparator.comparingLong(ChunkPos::toLong), 20 * 60);
+
 
     /**
      * Gets the structure data for a given pos, does trigger updates to that data
@@ -375,7 +375,24 @@ public class RespawnManager
                 }
             }
 
-            if (loaded + unloaded > 0 && unloaded / (double) (loaded + unloaded) > 0.3)
+            if (loaded > 0 && unloaded > 0)
+            {
+                for (int x = chunkPosMin.x; x <= chunkPosMax.x; x++)
+                {
+                    for (int z = chunkPosMax.z; z <= chunkPosMax.z; z++)
+                    {
+                        if (!level.hasChunk(x, z))
+                        {
+                            final ChunkPos pos = new ChunkPos(x, z);
+                            level.getChunkSource().addRegionTicket(RESPAWN_TICKET, pos, 3, pos);
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            if (unloaded > 0)
             {
                 return false;
             }
