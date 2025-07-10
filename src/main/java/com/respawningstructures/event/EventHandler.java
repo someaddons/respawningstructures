@@ -21,6 +21,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import java.util.Calendar;
+import java.util.HashSet;
 
 /**
  * Forge event bus handler, ingame events are fired here
@@ -49,6 +50,8 @@ public class EventHandler
      */
 
     private final static TagKey<Block> REDSTONE = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(RespawningStructures.MOD_ID, "redstone"));
+    public final static TagKey<Block> KEEP_EXISTING = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(RespawningStructures.MOD_ID, "keepexisting"));
+    public final static TagKey<Block> NO_RESPAWN    = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(RespawningStructures.MOD_ID, "norespawn"));
     private static long lastTime = 0;
 
     public static void onServerTick(final MinecraftServer server)
@@ -74,6 +77,64 @@ public class EventHandler
                     }
                 }
             }
+        }
+
+        if (RespawningStructures.config.getCommonConfig().needReload)
+        {
+            RespawningStructures.config.getCommonConfig().needReload = false;
+            final HashSet<String> toAddBlackList = new HashSet<>();
+            try
+            {
+                for (final String blackListEntry : RespawningStructures.config.getCommonConfig().blacklistedStructures)
+                {
+                    if (blackListEntry.startsWith("#"))
+                    {
+                        final ResourceLocation id = ResourceLocation.tryParse(blackListEntry.replace("#", ""));
+                        if (id != null)
+                        {
+                            server
+                                .registryAccess()
+                                .registry(Registries.STRUCTURE)
+                                .get()
+                                .getOrCreateTag(TagKey.create(Registries.STRUCTURE, id))
+                                .forEach(a -> toAddBlackList.add(a.unwrapKey().get().location().toString()));
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                RespawningStructures.LOGGER.warn("Error during trying to parse structure blacklist for tags: ", e);
+            }
+
+            RespawningStructures.config.getCommonConfig().blacklistedStructures.addAll(toAddBlackList);
+
+            final HashSet<String> toAddWhitelist = new HashSet<>();
+            try
+            {
+                for (final String blackListEntry : RespawningStructures.config.getCommonConfig().respawnableStructureIDs)
+                {
+                    if (blackListEntry.startsWith("#"))
+                    {
+                        final ResourceLocation id = ResourceLocation.tryParse(blackListEntry.replace("#", ""));
+                        if (id != null)
+                        {
+                            server
+                                .registryAccess()
+                                .registry(Registries.STRUCTURE)
+                                .get()
+                                .getOrCreateTag(TagKey.create(Registries.STRUCTURE, id))
+                                .forEach(a -> toAddWhitelist.add(a.unwrapKey().get().location().toString()));
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                RespawningStructures.LOGGER.warn("Error during trying to parse structure whitelist for tags: ", e);
+            }
+
+            RespawningStructures.config.getCommonConfig().respawnableStructureIDs.addAll(toAddWhitelist);
         }
     }
 
