@@ -25,6 +25,7 @@
     "SpawnerActiveMixin",
     "SpawnerSpawnMixin",
     "StructureStartBBFixMixin",
+    "StructureTemplatePostProcessorsMixin",
     "StructureTemplateProcessRespawnInfoMixin",
     "TemplateStructurePieceMixin"
   ],
