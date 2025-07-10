@@ -16,6 +16,7 @@
     "ServerPlayerSpawnPosMixin",
     "SpawnerActiveMixin",
     "StructureStartBBFixMixin",
+    "StructureTemplatePostProcessorsMixin",
     "StructureTemplateProcessRespawnInfoMixin",
     "TemplateStructurePieceMixin"
   ],

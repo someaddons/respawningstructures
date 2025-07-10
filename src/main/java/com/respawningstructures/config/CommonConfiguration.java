@@ -27,6 +27,7 @@ public class CommonConfiguration implements ICommonConfig
     public int     playerRespawnDist   = 200;
     public int     playerNearbyTime    = 15;
     public boolean logRespawns         = true;
+    public boolean needReload = true;
 
     public CommonConfiguration()
     {
@@ -84,7 +85,7 @@ public class CommonConfiguration implements ICommonConfig
 
         final JsonObject entry12 = new JsonObject();
         entry12.addProperty("desc:",
-          "List of structure IDs that should respawn always respawn, no matter if a player build sth inside, has a portal there etc.: e.g. minecraft:mansion");
+            "List of structure IDs(or tags of structures) that should respawn always respawn, no matter if a player build sth inside, has a portal there etc.: e.g. minecraft:mansion");
         final JsonArray list8 = new JsonArray();
         for (final String name : respawnableStructureIDs)
         {
@@ -95,7 +96,7 @@ public class CommonConfiguration implements ICommonConfig
 
         final JsonObject entry6 = new JsonObject();
         entry6.addProperty("desc:",
-          "List of blacklisted structures, those won't respawn ever: e.g. minecraft:mansion   Seperate multiple entries by , ");
+            "List of blacklisted structures(or tags of structures), those won't respawn ever: e.g. minecraft:mansion   Seperate multiple entries by , ");
         final JsonArray list6 = new JsonArray();
         for (final String name : blacklistedStructures)
         {
@@ -119,6 +120,7 @@ public class CommonConfiguration implements ICommonConfig
 
     public void deserialize(JsonObject data)
     {
+        needReload = true;
         minutesUntilRespawn = data.get("minutesUntilRespawn").getAsJsonObject().get("minutesUntilRespawn").getAsInt();
         playerRespawnDist = data.get("playerRespawnDist").getAsJsonObject().get("playerRespawnDist").getAsInt();
         playerNearbyTime = data.get("playerNearbyTime").getAsJsonObject().get("playerNearbyTime").getAsInt();
