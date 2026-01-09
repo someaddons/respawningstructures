@@ -1,6 +1,7 @@
 package com.respawningstructures.mixin;
 
 import com.respawningstructures.event.EventHandler;
+import com.respawningstructures.event.StructureRespawnEvents;
 import com.respawningstructures.structure.RespawnManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ServerLevelAccessor;
@@ -13,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static com.respawningstructures.event.EventHandler.KEEP_ALWAYS;
 
@@ -41,6 +43,13 @@ public class StructureTemplatePostProcessorsMixin
                 {
                     iterator.remove();
                 }
+            }
+
+            final StructureRespawnEvents.ModifyBlocksBeforePlacementEvent event =
+                new StructureRespawnEvents.ModifyBlocksBeforePlacementEvent(serverLevelAccessor, list, RespawnManager.respawnInProgress);
+            for (final Consumer<StructureRespawnEvents.ModifyBlocksBeforePlacementEvent> listener : StructureRespawnEvents.MODIFY_BLOCK_PLACEMENT_EVENT)
+            {
+                listener.accept(event);
             }
         }
     }
