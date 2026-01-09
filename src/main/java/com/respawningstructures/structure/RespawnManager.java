@@ -1,6 +1,7 @@
 package com.respawningstructures.structure;
 
 import com.respawningstructures.RespawningStructures;
+import com.respawningstructures.event.StructureRespawnEvents;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -32,6 +33,8 @@ import net.minecraft.world.level.levelgen.structure.structures.*;
 import net.minecraft.world.phys.AABB;
 
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class RespawnManager
 {
@@ -405,6 +408,15 @@ public class RespawnManager
             }
         }
 
+        final StructureRespawnEvents.CanRespawnEvent canRespawnEvent = new StructureRespawnEvents.CanRespawnEvent(level, structureData);
+        for (final Predicate<StructureRespawnEvents.CanRespawnEvent> event : StructureRespawnEvents.CAN_RESPAWN_EVENT)
+        {
+            if (!event.test(canRespawnEvent))
+            {
+                return false;
+            }
+        }
+
         if (RespawningStructures.config.getCommonConfig().logRespawns)
         {
             RespawningStructures.LOGGER.info(
@@ -528,6 +540,15 @@ public class RespawnManager
             structureStart = new StructureStart(structureStart.getStructure(), structureStart.getChunkPos(), structureStart.getReferences(), new PiecesContainer(pieces));
         }
 
+        List<StructurePiece> piecesList = new ArrayList<>(structureStart.getPieces());
+        final StructureRespawnEvents.ModifyStructureBeforeRespawnEvent event =
+            new StructureRespawnEvents.ModifyStructureBeforeRespawnEvent(level, structureData, piecesList, entityCounts);
+        for (final Consumer<StructureRespawnEvents.ModifyStructureBeforeRespawnEvent> listener : StructureRespawnEvents.MODIFY_STRUCTURE_BEFORE_RESPAWN_EVENT)
+        {
+            listener.accept(event);
+        }
+        structureStart = new StructureStart(structureStart.getStructure(), structureStart.getChunkPos(), structureStart.getReferences(), new PiecesContainer(piecesList));
+
         final StructureStart toPlace = structureStart;
         ChunkPos.rangeClosed(chunkPosMin, chunkPosMax).forEach((chunPos) -> {
             toPlace.placeInChunk(level,
@@ -559,6 +580,11 @@ public class RespawnManager
         }
 
         structureData.onRespawnReset(level);
+        final StructureRespawnEvents.AfterRespawnEvent afterRespawnEvent = new StructureRespawnEvents.AfterRespawnEvent(level, structureData);
+        for (final Consumer<StructureRespawnEvents.AfterRespawnEvent> listener : StructureRespawnEvents.AFTER_RESPAWN_EVENT)
+        {
+            listener.accept(afterRespawnEvent);
+        }
         respawnInProgress = null;
         heightMap = null;
 
