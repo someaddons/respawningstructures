@@ -64,7 +64,7 @@ public class RespawnLevelData extends SavedData
             if (tag instanceof CompoundTag)
             {
                 final StructureData data = new StructureData((CompoundTag) tag);
-                structurePositions.put(data.pos.asLong(), data);
+                structurePositions.put(data.pos.asLong() + 1, data);
                 allStructureData.add(data);
             }
         }
@@ -133,7 +133,7 @@ public class RespawnLevelData extends SavedData
      */
     public StructureData getForPos(final ServerLevel level, final BlockPos pos, final boolean update)
     {
-        final StructureData alreadyContainedAtPos = structurePositions.get(SectionPos.asLong(pos));
+        final StructureData alreadyContainedAtPos = structurePositions.get(sectionPosLong(pos));
         if (alreadyContainedAtPos == StructureData.EMPTY)
         {
             return null;
@@ -153,7 +153,7 @@ public class RespawnLevelData extends SavedData
 
         if (structureStart == null)
         {
-            structurePositions.put(SectionPos.asLong(pos), StructureData.EMPTY);
+            structurePositions.put(sectionPosLong(pos), StructureData.EMPTY);
             return null;
         }
 
@@ -178,7 +178,7 @@ public class RespawnLevelData extends SavedData
             RespawningStructures.LOGGER.warn("Bad structure start!");
         }*/
 
-        final StructureData data = structurePositions.computeIfAbsent(SectionPos.asLong(structureStart.getBoundingBox().getCenter()), (p) -> {
+        final StructureData data = structurePositions.computeIfAbsent(sectionPosLong(structureStart.getBoundingBox().getCenter()), (p) -> {
             StructureData newData = new StructureData(structureStart.getBoundingBox().getCenter(),
               level.registryAccess()
                 .registry(Registries.STRUCTURE)
@@ -191,7 +191,7 @@ public class RespawnLevelData extends SavedData
         });
 
         // Add cache lookup for queried chunksection
-        structurePositions.put(SectionPos.asLong(pos), data);
+        structurePositions.put(sectionPosLong(pos), data);
 
         // Dirty on access since values change
         setDirty(true);
@@ -201,6 +201,11 @@ public class RespawnLevelData extends SavedData
             data.setLastModifiedTime(elapsedTime);
         }
         return data;
+    }
+
+    private static long sectionPosLong(final BlockPos pos)
+    {
+        return SectionPos.asLong(pos) + 1L;
     }
 
     /**

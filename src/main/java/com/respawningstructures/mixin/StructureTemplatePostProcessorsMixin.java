@@ -16,6 +16,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static com.respawningstructures.event.EventHandler.KEEP_ALWAYS;
+
 @Mixin(StructureTemplate.class)
 public class StructureTemplatePostProcessorsMixin
 {
@@ -36,7 +38,8 @@ public class StructureTemplatePostProcessorsMixin
                 final StructureTemplate.StructureBlockInfo blockInfo = iterator.next();
                 if ((blockInfo.nbt() != null && blockInfo.state().is(EventHandler.KEEP_EXISTING)
                     && serverLevelAccessor.getBlockState(blockInfo.pos()).getBlock().equals(blockInfo.state().getBlock()))
-                    || blockInfo.state().is(EventHandler.NO_RESPAWN))
+                    || blockInfo.state().is(EventHandler.NO_RESPAWN)
+                    || serverLevelAccessor.getBlockState(blockInfo.pos()).is(KEEP_ALWAYS))
                 {
                     iterator.remove();
                 }
