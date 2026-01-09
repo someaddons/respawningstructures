@@ -1,6 +1,9 @@
 {
   "values": [
-    "#waystones:waystones",
+    {
+      "id": "#waystones:waystones",
+      "required": false
+    },
     "#minecraft:portals"
   ]
 }
