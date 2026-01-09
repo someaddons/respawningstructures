@@ -378,7 +378,7 @@ public class StructureData
     /**
      * Triggered on respawning, clears stats and increases respawn counter
      */
-    public void onRespawnReset()
+    public void onRespawnReset(final ServerLevel level)
     {
         respawns++;
         spawnerActivations = 0;
@@ -392,7 +392,8 @@ public class StructureData
         playerDeaths = 0;
         portalUsage = 0;
         blockEntities = 0;
-        inhabitedStart = 0;
+        final ChunkAccess chunk = level.getChunk(pos.origin());
+        inhabitedStart = chunk.getInhabitedTime();
         lastActivity = 0;
     }
 
@@ -423,7 +424,7 @@ public class StructureData
         {
             final ChunkAccess chunk = level.getChunk(pos.origin());
 
-            inhabitedTimePct = (int) (((chunk.getInhabitedTime() - inhabitedStart) / 20.0 / ((levelData.getLevelTime() - 60) - lastActivity)) * 100);
+            inhabitedTimePct = (int) (((chunk.getInhabitedTime() - inhabitedStart) / 20.0 / ((levelData.getLevelTime() + 1) - lastActivity)) * 100);
         }
 
         return Component.literal("Broken blocks: " + blocksBroken).withStyle(ChatFormatting.BLUE)

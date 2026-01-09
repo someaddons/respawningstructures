@@ -46,6 +46,10 @@ public class RespawnManager
      */
     public static StructureData getForPos(final ServerLevel level, final BlockPos pos, final boolean update)
     {
+        if (pos == null || BlockPos.ZERO.equals(pos) || level == null || Thread.currentThread() != level.getServer().getRunningThread())
+        {
+            return null;
+        }
         final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
         return respawnData.getForPos(level, pos, update);
     }
@@ -196,10 +200,13 @@ public class RespawnManager
 
     public static void onExplosion(final Level level, final Explosion explosion, final List<BlockPos> affectedBlocks)
     {
-        final StructureData structureData = getForPos((ServerLevel) level, BlockPos.containing(explosion.center()), true);
-        if (structureData != null)
+        if (level instanceof ServerLevel serverLevel)
         {
-            structureData.blocksBroken += affectedBlocks.size() / 2;
+            final StructureData structureData = getForPos(serverLevel, BlockPos.containing(explosion.center()), true);
+            if (structureData != null)
+            {
+                structureData.blocksBroken += affectedBlocks.size() / 2;
+            }
         }
     }
 
@@ -551,7 +558,7 @@ public class RespawnManager
                 + structureData.id);
         }
 
-        structureData.onRespawnReset();
+        structureData.onRespawnReset(level);
         respawnInProgress = null;
         heightMap = null;
 
