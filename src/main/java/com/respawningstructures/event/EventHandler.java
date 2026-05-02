@@ -205,7 +205,9 @@ public class EventHandler
     @SubscribeEvent
     public static void onEntityAdded(final EntityJoinLevelEvent event)
     {
-        if (!event.getLevel().isClientSide && !RespawnManager.tryAddEntityDuringRespawn(event.getEntity(), (ServerLevel) event.getLevel(), event.getEntity().blockPosition()))
+        if (event.getLevel() instanceof ServerLevel && !RespawnManager.tryAddEntityDuringRespawn(event.getEntity(),
+            (ServerLevel) event.getLevel(),
+            event.getEntity().blockPosition()))
         {
             event.setCanceled(true);
         }
