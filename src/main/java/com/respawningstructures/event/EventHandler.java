@@ -194,7 +194,7 @@ public class EventHandler
 
     public static boolean onEntityAdded(final Entity entity)
     {
-        if (!entity.level().isClientSide && !RespawnManager.tryAddEntityDuringRespawn(entity, (ServerLevel) entity.level(), entity.blockPosition()))
+        if (entity.level() instanceof ServerLevel && !RespawnManager.tryAddEntityDuringRespawn(entity, (ServerLevel) entity.level(), entity.blockPosition()))
         {
             entity.setRemoved(Entity.RemovalReason.DISCARDED);
             return false;

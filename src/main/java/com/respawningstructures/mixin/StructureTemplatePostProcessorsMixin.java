@@ -45,6 +45,8 @@ public class StructureTemplatePostProcessorsMixin
                 }
             }
 
+            // TODO: Idea for skipping blocks that use world height: run the processor list again on a "fake world" which has the block of the original result already set, if that still triggers changes(at a differen pos?) ignore the block?
+
             final StructureRespawnEvents.ModifyBlocksBeforePlacementEvent event =
                 new StructureRespawnEvents.ModifyBlocksBeforePlacementEvent(serverLevelAccessor, list, RespawnManager.respawnInProgress);
             for (final Consumer<StructureRespawnEvents.ModifyBlocksBeforePlacementEvent> listener : StructureRespawnEvents.MODIFY_BLOCK_PLACEMENT_EVENT)
