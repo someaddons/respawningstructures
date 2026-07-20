@@ -35,6 +35,6 @@ public class RespawningStructures implements ModInitializer
 
 
         ServerTickEvents.END_SERVER_TICK.register(EventHandler::onServerTick);
-        ServerTickEvents.END_WORLD_TICK.register(EventHandler::onLevelTick);
+        ServerTickEvents.END_LEVEL_TICK.register(EventHandler::onLevelTick);
     }
 }

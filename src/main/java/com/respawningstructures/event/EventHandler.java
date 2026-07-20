@@ -5,16 +5,16 @@ import com.respawningstructures.structure.RespawnLevelData;
 import com.respawningstructures.structure.RespawnManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,37 +23,18 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import java.util.Calendar;
 import java.util.HashSet;
 
+import static com.respawningstructures.structure.RespawnLevelData.RESPAWNLEVELDATAFACTORY;
+
 /**
  * Forge event bus handler, ingame events are fired here
  */
 public class EventHandler
 {
-    /**
-     * Conditions to trigger respawn watching:
-     * - Spawner broken
-     * - Spawner spawning blocked by player? difficult if some structure blocks it by default
-     * - Dungeon chest looted - detect if it is a dungeon loot table
-     * - Killing mobs
-     * - Breaking some blocks
-     * - placing torches
-     * - fighting
-     * - player dying
-     * <p>
-     * Conditions to fulfill for respawn:
-     * - Time passed: Config, 10 ingame weeks?
-     * - Not too many blocks placed next to, hard to track maybe per player?
-     * - Threshold of trigger combination counts, 1 mob killed some blocks placed, sone chests looted, some spawner broken
-     * - Not too high inhabited time diff since start of tracking
-     * <p>
-     * Extra difficulty:
-     * Spawn additional or replace mobs during respawn(mark persistent)
-     */
-
-    private final static TagKey<Block> REDSTONE = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(RespawningStructures.MOD_ID, "redstone"));
-    public final static TagKey<Block> KEEP_EXISTING = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(RespawningStructures.MOD_ID, "keepexisting"));
-    public final static TagKey<Block> NO_RESPAWN    = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(RespawningStructures.MOD_ID, "norespawn"));
-    public final static TagKey<Block> KEEP_ALWAYS = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(RespawningStructures.MOD_ID, "keepalways"));
-    private static      long          lastTime    = 0;
+    private final static TagKey<Block> REDSTONE      = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(RespawningStructures.MOD_ID, "redstone"));
+    public final static  TagKey<Block> KEEP_EXISTING = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(RespawningStructures.MOD_ID, "keepexisting"));
+    public final static  TagKey<Block> NO_RESPAWN    = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(RespawningStructures.MOD_ID, "norespawn"));
+    public final static  TagKey<Block> KEEP_ALWAYS   = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(RespawningStructures.MOD_ID, "keepalways"));
+    private static       long          lastTime      = 0;
 
     public static void onServerTick(final MinecraftServer server)
     {
@@ -71,7 +52,7 @@ public class EventHandler
 
                 for (final ServerLevel level : server.getAllLevels())
                 {
-                    final RespawnLevelData data = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
+                    final RespawnLevelData data = level.getDataStorage().computeIfAbsent(RESPAWNLEVELDATAFACTORY);
                     if (data != null)
                     {
                         data.increaseTime(60 * 5);
@@ -90,15 +71,14 @@ public class EventHandler
                 {
                     if (blackListEntry.startsWith("#"))
                     {
-                        final ResourceLocation id = ResourceLocation.tryParse(blackListEntry.replace("#", ""));
+                        final Identifier id = Identifier.tryParse(blackListEntry.replace("#", ""));
                         if (id != null)
                         {
                             server
                                 .registryAccess()
-                                .registry(Registries.STRUCTURE)
-                                .get()
-                                .getOrCreateTag(TagKey.create(Registries.STRUCTURE, id))
-                                .forEach(a -> toAddBlackList.add(a.unwrapKey().get().location().toString()));
+                                .lookupOrThrow(Registries.STRUCTURE)
+                                .getOrThrow(TagKey.create(Registries.STRUCTURE, id))
+                                .forEach(a -> a.unwrapKey().ifPresent(key -> toAddBlackList.add(key.identifier().toString())));
                         }
                     }
                 }
@@ -117,15 +97,14 @@ public class EventHandler
                 {
                     if (blackListEntry.startsWith("#"))
                     {
-                        final ResourceLocation id = ResourceLocation.tryParse(blackListEntry.replace("#", ""));
+                        final Identifier id = Identifier.tryParse(blackListEntry.replace("#", ""));
                         if (id != null)
                         {
                             server
                                 .registryAccess()
-                                .registry(Registries.STRUCTURE)
-                                .get()
-                                .getOrCreateTag(TagKey.create(Registries.STRUCTURE, id))
-                                .forEach(a -> toAddWhitelist.add(a.unwrapKey().get().location().toString()));
+                                .lookupOrThrow(Registries.STRUCTURE)
+                                .getOrThrow(TagKey.create(Registries.STRUCTURE, id))
+                                .forEach(a -> a.unwrapKey().ifPresent(key -> toAddWhitelist.add(key.identifier().toString())));
                         }
                     }
                 }
@@ -141,7 +120,7 @@ public class EventHandler
 
     public static void onLevelTick(final ServerLevel level)
     {
-        if (!level.isClientSide && level.getGameTime() % 1000 == 17)
+        if (!level.isClientSide() && level.getGameTime() % 1000 == 17)
         {
             RespawnManager.onLevelTick(level);
         }
@@ -166,17 +145,20 @@ public class EventHandler
 
     public static void onBlockPlaced(final ServerPlayer serverPlayer, final BlockPos blockPos, final BlockState state)
     {
-        if (state.getLightEmission() > 0)
+        if (serverPlayer instanceof ServerPlayer)
         {
-            RespawnManager.onLightPlaced(serverPlayer, blockPos);
-        }
-        else if (state.hasProperty(BlockStateProperties.POWER) || state.is(REDSTONE))
-        {
-            RespawnManager.onRedstonePlaced(serverPlayer, blockPos);
-        }
-        else
-        {
-            RespawnManager.onBlockPlaced(serverPlayer, blockPos);
+            if (state.getLightEmission() > 0)
+            {
+                RespawnManager.onLightPlaced(serverPlayer, blockPos);
+            }
+            else if (state.hasProperty(BlockStateProperties.POWER) || state.is(REDSTONE))
+            {
+                RespawnManager.onRedstonePlaced(serverPlayer, blockPos);
+            }
+            else
+            {
+                RespawnManager.onBlockPlaced(serverPlayer, blockPos);
+            }
         }
     }
 
@@ -203,9 +185,9 @@ public class EventHandler
         return true;
     }
 
-    public static void onEntitySpawned(final Entity entity, final MobSpawnType type)
+    public static void onEntitySpawned(final Entity entity, final EntitySpawnReason type)
     {
-        if (!entity.level().isClientSide() && type == MobSpawnType.SPAWNER && entity instanceof Mob)
+        if (!entity.level().isClientSide() && type == EntitySpawnReason.SPAWNER && entity instanceof Mob)
         {
             RespawnManager.onSpawnerSpawn((Mob) entity);
         }

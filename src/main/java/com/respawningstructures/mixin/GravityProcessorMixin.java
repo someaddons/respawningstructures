@@ -5,7 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.FarmBlock;
+import net.minecraft.world.level.block.FarmlandBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.GravityProcessor;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
@@ -83,7 +83,7 @@ public class GravityProcessorMixin
                         //fixedpos = fixedpos.below();
                     }
 
-                    if (!(levelReader.getBlockState(fixedpos.below()).is(Blocks.FARMLAND) || levelReader.getBlockState(fixedpos.below()).getBlock() instanceof FarmBlock
+                    if (!(levelReader.getBlockState(fixedpos.below()).is(Blocks.FARMLAND) || levelReader.getBlockState(fixedpos.below()).getBlock() instanceof FarmlandBlock
                         || levelReader.getBlockState(fixedpos.below()).is(BlockTags.DIRT)))
                     {
                         cir.setReturnValue(null);

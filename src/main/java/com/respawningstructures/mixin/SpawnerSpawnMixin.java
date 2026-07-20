@@ -2,8 +2,8 @@ package com.respawningstructures.mixin;
 
 import com.respawningstructures.event.EventHandler;
 import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.level.ServerLevelAccessor;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,7 +18,7 @@ public class SpawnerSpawnMixin
     private void onSpawn(
         final ServerLevelAccessor serverLevelAccessor,
         final DifficultyInstance difficultyInstance,
-        final MobSpawnType mobSpawnType,
+        final EntitySpawnReason mobSpawnType,
         final SpawnGroupData spawnGroupData,
         final CallbackInfoReturnable<SpawnGroupData> cir)
     {

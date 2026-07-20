@@ -25,21 +25,41 @@ import java.util.*;
 
 public class Command
 {
+    private static boolean hasGamemasterPermission(final CommandSourceStack stack)
+    {
+        return Commands.LEVEL_GAMEMASTERS.check(stack.permissions());
+    }
+
+    private static BlockPos chunkOrigin(final ChunkPos pos)
+    {
+        return new BlockPos(pos.x() << 4, 0, pos.z() << 4);
+    }
+
+    private static BlockPos chunkOrigin(final ChunkPos pos, final int offsetX, final int offsetZ)
+    {
+        return new BlockPos((pos.x() + offsetX) << 4, 0, (pos.z() + offsetZ) << 4);
+    }
+
+    private static ClickEvent runCommand(final String command)
+    {
+        return new ClickEvent.RunCommand(command);
+    }
+
     public LiteralArgumentBuilder<CommandSourceStack> build(CommandBuildContext buildContext)
     {
         return Commands.literal(RespawningStructures.MOD_ID)
           .then(
             Commands.literal("respawnClosestStructure")
-              .requires(stack -> stack.hasPermission(2))
+                .requires(Command::hasGamemasterPermission)
               .executes(context ->
               {
                   final ServerLevel world = context.getSource().getLevel();
                   final Map<Structure, LongSet> structures = new HashMap<>();
 
-                  final ChunkPos start = new ChunkPos(BlockPos.containing(context.getSource().getPosition()));
+                  final ChunkPos start = ChunkPos.containing(BlockPos.containing(context.getSource().getPosition()));
 
                   for (final Map.Entry<Structure, LongSet> entry : world.structureManager()
-                    .getAllStructuresAt(new BlockPos((start.x) << 4, 0, (start.z) << 4))
+                      .getAllStructuresAt(chunkOrigin(start))
                     .entrySet())
                   {
                       structures.computeIfAbsent(entry.getKey(), k -> new LongOpenHashSet(entry.getValue())).addAll(entry.getValue());
@@ -52,7 +72,7 @@ public class Command
                           for (int z = -5; z < 5; z++)
                           {
                               for (final Map.Entry<Structure, LongSet> entry : world.structureManager()
-                                .getAllStructuresAt(new BlockPos((start.x + x) << 4, 0, (start.z + z) << 4))
+                                  .getAllStructuresAt(chunkOrigin(start, x, z))
                                 .entrySet())
                               {
                                   structures.computeIfAbsent(entry.getKey(), k -> new LongOpenHashSet(entry.getValue())).addAll(entry.getValue());
@@ -85,14 +105,13 @@ public class Command
 
                   context.getSource()
                     .sendSystemMessage(Component.literal("Respawning structure: " +
-                                                           context.getSource()
-                                                             .registryAccess()
-                                                             .registry(Registries.STRUCTURE)
-                                                             .get()
+                            context.getSource()
+                                .registryAccess()
+                                .lookupOrThrow(Registries.STRUCTURE)
                                                              .getKey(sortedStructures.get(0).getValue().getStructure()))
                       .append(Component.literal(" at: " + sortedStructures.get(0).getKey()).withStyle(ChatFormatting.YELLOW)
                         .withStyle(style ->
-                                     style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                            style.withClickEvent(runCommand(
                                        "/tp " + sortedStructures.get(0).getKey().getX() + " " + sortedStructures.get(0).getKey().getY() + " " + sortedStructures.get(0)
                                          .getKey()
                                          .getZ()))
@@ -105,7 +124,7 @@ public class Command
           )
           .then(
             Commands.literal("setClosestStructureRespawningFlag")
-              .requires(stack -> stack.hasPermission(2))
+                .requires(Command::hasGamemasterPermission)
               .then(Commands.argument("doesrespawn", BoolArgumentType.bool())
                 .executes(context ->
                 {
@@ -114,10 +133,10 @@ public class Command
                     final ServerLevel world = context.getSource().getLevel();
                     final Map<Structure, LongSet> structures = new HashMap<>();
 
-                    final ChunkPos start = new ChunkPos(BlockPos.containing(context.getSource().getPosition()));
+                    final ChunkPos start = ChunkPos.containing(BlockPos.containing(context.getSource().getPosition()));
 
                     for (final Map.Entry<Structure, LongSet> entry : world.structureManager()
-                      .getAllStructuresAt(new BlockPos((start.x) << 4, 0, (start.z) << 4))
+                        .getAllStructuresAt(chunkOrigin(start))
                       .entrySet())
                     {
                         structures.computeIfAbsent(entry.getKey(), k -> new LongOpenHashSet(entry.getValue())).addAll(entry.getValue());
@@ -130,7 +149,7 @@ public class Command
                             for (int z = -5; z < 5; z++)
                             {
                                 for (final Map.Entry<Structure, LongSet> entry : world.structureManager()
-                                  .getAllStructuresAt(new BlockPos((start.x + x) << 4, 0, (start.z + z) << 4))
+                                    .getAllStructuresAt(chunkOrigin(start, x, z))
                                   .entrySet())
                                 {
                                     structures.computeIfAbsent(entry.getKey(), k -> new LongOpenHashSet(entry.getValue())).addAll(entry.getValue());
@@ -163,21 +182,21 @@ public class Command
 
                     context.getSource()
                       .sendSystemMessage(Component.literal("Set respawn to " + shouldRespawn + " for structure: " +
-                                                             context.getSource()
-                                                               .registryAccess()
-                                                               .registry(Registries.STRUCTURE)
-                                                               .get()
+                              context.getSource()
+                                  .registryAccess()
+                                  .lookupOrThrow(Registries.STRUCTURE)
                                                                .getKey(sortedStructures.get(0).getValue().getStructure()))
                         .append(Component.literal(" at: " + sortedStructures.get(0).getKey()).withStyle(ChatFormatting.YELLOW)
                           .withStyle(style ->
-                                       style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                              style.withClickEvent(runCommand(
                                          "/tp " + sortedStructures.get(0).getKey().getX() + " " + sortedStructures.get(0).getKey().getY() + " " + sortedStructures.get(0)
                                            .getKey()
                                            .getZ()))
                           )));
                     RespawnManager.getForPos(world, sortedStructures.get(0).getValue().getBoundingBox().getCenter(), false).disabledRespawn = !shouldRespawn;
                     final RespawnLevelData respawnData =
-                        context.getSource().getLevel().getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
+                        context.getSource().getLevel().getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
+                    ;
                     if (respawnData != null)
                     {
                         respawnData.setDirty();
@@ -188,16 +207,16 @@ public class Command
               ))
           .then(
             Commands.literal("listNearbyStructures")
-              .requires(stack -> stack.hasPermission(2))
+                .requires(Command::hasGamemasterPermission)
               .executes(context ->
               {
                   final ServerLevel world = context.getSource().getLevel();
                   final Map<Structure, LongSet> structures = new HashMap<>();
 
-                  final ChunkPos start = new ChunkPos(BlockPos.containing(context.getSource().getPosition()));
+                  final ChunkPos start = ChunkPos.containing(BlockPos.containing(context.getSource().getPosition()));
 
                   for (final Map.Entry<Structure, LongSet> entry : world.structureManager()
-                    .getAllStructuresAt(new BlockPos((start.x) << 4, 0, (start.z) << 4))
+                      .getAllStructuresAt(chunkOrigin(start))
                     .entrySet())
                   {
                       structures.computeIfAbsent(entry.getKey(), k -> new LongOpenHashSet(entry.getValue())).addAll(entry.getValue());
@@ -210,7 +229,7 @@ public class Command
                           for (int z = -5; z < 5; z++)
                           {
                               for (final Map.Entry<Structure, LongSet> entry : world.structureManager()
-                                .getAllStructuresAt(new BlockPos((start.x + x) << 4, 0, (start.z + z) << 4))
+                                  .getAllStructuresAt(chunkOrigin(start, x, z))
                                 .entrySet())
                               {
                                   structures.computeIfAbsent(entry.getKey(), k -> new LongOpenHashSet(entry.getValue())).addAll(entry.getValue());
@@ -251,10 +270,10 @@ public class Command
                       context.getSource()
                         .sendSystemMessage(Component.literal("" + data.id)
                           .append(Component.literal(" at: {" + entry.getKey().toShortString() + "}").withStyle(ChatFormatting.YELLOW)
-                            .withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                              .withStyle(style -> style.withClickEvent(runCommand(
                               "/tp " + entry.getKey().getX() + " " + entry.getKey().getY() + " " + entry.getKey().getZ()))
                             )
-                            .append(Component.literal(" {stats}").withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                              .append(Component.literal(" {stats}").withStyle(style -> style.withClickEvent(runCommand(
                               "/" + RespawningStructures.MOD_ID + " structureRespawnStatus " + entry.getKey().getX() + " " + entry.getKey().getY() + " " + entry.getKey()
                                 .getZ()))))));
                   }
@@ -263,7 +282,7 @@ public class Command
           )
           .then(
             Commands.literal("structureRespawnStatus")
-              .requires(stack -> stack.hasPermission(2))
+                .requires(Command::hasGamemasterPermission)
               .then(Commands.argument("position", BlockPosArgument.blockPos())
                 .executes(context ->
                 {
@@ -287,7 +306,7 @@ public class Command
 
                     int minutes_remaining = Math.max(0,
                       (int) (1 / 60d * (RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L - (
-                          context.getSource().getLevel().getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID).getLevelTime()
+                          context.getSource().getLevel().getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY).getLevelTime()
                           - data.lastActivity))));
 
                     context.getSource()

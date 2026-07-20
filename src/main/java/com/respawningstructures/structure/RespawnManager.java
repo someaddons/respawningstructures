@@ -9,7 +9,8 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
@@ -32,7 +33,10 @@ import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 import net.minecraft.world.level.levelgen.structure.structures.*;
 import net.minecraft.world.phys.AABB;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -41,7 +45,19 @@ public class RespawnManager
     public volatile static StructureData                     respawnInProgress = null;
     public static          Object2IntOpenHashMap<EntityType> entityCounts      = new Object2IntOpenHashMap<>();
     public static Object2IntOpenHashMap<BlockPos> heightMap = null;
-    public static TicketType<ChunkPos> RESPAWN_TICKET = TicketType.create("respawningstructures", Comparator.comparingLong(ChunkPos::toLong), 20 * 60);
+    public static TicketType RESPAWN_TICKET = new TicketType(20 * 60, TicketType.FLAG_LOADING);
+
+    private static BlockPos getRespawnPosition(final ServerPlayer player)
+    {
+        final ServerPlayer.RespawnConfig respawnConfig = player.getRespawnConfig();
+        return respawnConfig == null ? null : respawnConfig.respawnData().pos();
+    }
+
+    private static ResourceKey<Level> getRespawnDimension(final ServerPlayer player)
+    {
+        final ServerPlayer.RespawnConfig respawnConfig = player.getRespawnConfig();
+        return respawnConfig == null ? null : respawnConfig.respawnData().dimension();
+    }
 
 
     /**
@@ -53,7 +69,7 @@ public class RespawnManager
         {
             return null;
         }
-        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
+        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
         return respawnData.getForPos(level, pos, update);
     }
 
@@ -87,7 +103,7 @@ public class RespawnManager
     /**
      * Triggered when a chest is looted that qualifies as dungeon loot
      */
-    public static void onChestLooted(final ServerLevel level, final ResourceLocation lootTable, final BlockPos pos)
+    public static void onChestLooted(final ServerLevel level, final Identifier lootTable, final BlockPos pos)
     {
         final StructureData structureData = getForPos(level, pos, true);
         if (structureData != null)
@@ -232,10 +248,12 @@ public class RespawnManager
      */
     public static void onPlayerLogin(final ServerPlayer entity)
     {
-        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
-        if (entity.getRespawnPosition() != null && entity.level().dimension() == entity.getRespawnDimension())
+        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
+        final BlockPos respawnPosition = getRespawnPosition(entity);
+        final ResourceKey<Level> respawnDimension = getRespawnDimension(entity);
+        if (respawnPosition != null && entity.level().dimension() == respawnDimension)
         {
-            levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime())).lastUsageLevelTime =
+            levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, respawnPosition, levelData.getLevelTime())).lastUsageLevelTime =
                 levelData.getLevelTime();
         }
         levelData.setDirty();
@@ -248,10 +266,12 @@ public class RespawnManager
      */
     public static void onPlayerRespawn(final ServerPlayer entity)
     {
-        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
-        if (entity.getRespawnPosition() != null && entity.level().dimension() == entity.getRespawnDimension())
+        final RespawnLevelData levelData = ((ServerLevel) entity.level()).getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
+        final BlockPos respawnPosition = getRespawnPosition(entity);
+        final ResourceKey<Level> respawnDimension = getRespawnDimension(entity);
+        if (respawnPosition != null && entity.level().dimension() == respawnDimension)
         {
-            levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime())).lastUsageLevelTime =
+            levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(), uuid -> new Respawn(uuid, respawnPosition, levelData.getLevelTime())).lastUsageLevelTime =
                 levelData.getLevelTime();
         }
         levelData.setDirty();
@@ -264,22 +284,24 @@ public class RespawnManager
      */
     public static void onPlayerSetSpawn(final ServerPlayer entity)
     {
-        for (final ServerLevel level : entity.server.getAllLevels())
+        final BlockPos respawnPosition = getRespawnPosition(entity);
+        final ResourceKey<Level> respawnDimension = getRespawnDimension(entity);
+        for (final ServerLevel level : entity.level().getServer().getAllLevels())
         {
-            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
+            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
             Respawn respawn = levelData.playerRespawnTracker.get(entity.getUUID());
 
             if (respawn == null)
             {
-                if (level.dimension() == entity.getRespawnDimension() && entity.getRespawnPosition() != null)
+                if (level.dimension() == respawnDimension && respawnPosition != null)
                 {
                     levelData.playerRespawnTracker.computeIfAbsent(entity.getUUID(),
-                        uuid -> new Respawn(uuid, entity.getRespawnPosition(), levelData.getLevelTime()));
+                        uuid -> new Respawn(uuid, respawnPosition, levelData.getLevelTime()));
                 }
             }
             else
             {
-                if (level.dimension() != entity.getRespawnDimension())
+                if (level.dimension() != respawnDimension)
                 {
                     levelData.playerRespawnTracker.remove(entity.getUUID());
                 }
@@ -309,12 +331,12 @@ public class RespawnManager
      */
     public static void onLevelTick(final ServerLevel level)
     {
-        if (RespawningStructures.config.getCommonConfig().dimensionBlackList.contains(level.dimension().location().toString()))
+        if (RespawningStructures.config.getCommonConfig().dimensionBlackList.contains(level.dimension().identifier().toString()))
         {
             return;
         }
 
-        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
+        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
 
         for (final StructureData data : respawnData.getAllStructureData())
         {
@@ -346,7 +368,7 @@ public class RespawnManager
             return false;
         }
 
-        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
+        final RespawnLevelData respawnData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
         if (respawnData == null)
         {
             return false;
@@ -370,9 +392,9 @@ public class RespawnManager
             int loaded = 0;
             int unloaded = 0;
 
-            for (int x = chunkPosMin.x; x <= chunkPosMax.x; x++)
+            for (int x = chunkPosMin.x(); x <= chunkPosMax.x(); x++)
             {
-                for (int z = chunkPosMax.z; z <= chunkPosMax.z; z++)
+                for (int z = chunkPosMax.z(); z <= chunkPosMax.z(); z++)
                 {
                     if (!level.hasChunk(x, z))
                     {
@@ -387,14 +409,14 @@ public class RespawnManager
 
             if (loaded > 0 && unloaded > 0)
             {
-                for (int x = chunkPosMin.x; x <= chunkPosMax.x; x++)
+                for (int x = chunkPosMin.x(); x <= chunkPosMax.x(); x++)
                 {
-                    for (int z = chunkPosMax.z; z <= chunkPosMax.z; z++)
+                    for (int z = chunkPosMax.z(); z <= chunkPosMax.z(); z++)
                     {
                         if (!level.hasChunk(x, z))
                         {
                             final ChunkPos pos = new ChunkPos(x, z);
-                            level.getChunkSource().addRegionTicket(RESPAWN_TICKET, pos, 3, pos);
+                            level.getChunkSource().addTicketWithRadius(RESPAWN_TICKET, pos, 3);
                         }
                     }
                 }
@@ -506,8 +528,8 @@ public class RespawnManager
             }
         }
 
-        Registry<Structure> structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
-        Optional<Holder.Reference<Structure>> holder = structureRegistry.getHolder(structureRegistry.getId(structureStart.getStructure()));
+        Registry<Structure> structureRegistry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+        Optional<Holder.Reference<Structure>> holder = structureRegistry.get(structureRegistry.getKey(structureStart.getStructure()));
         if (holder.isPresent() && holder.get().is(StructureTags.VILLAGE))
         {
             final List<StructurePiece> pieces = new ArrayList<>(structureStart.getPieces());
@@ -524,7 +546,7 @@ public class RespawnManager
             structureStart = new StructureStart(structureStart.getStructure(), structureStart.getChunkPos(), structureStart.getReferences(), new PiecesContainer(pieces));
         }
 
-        if (holder.isPresent() && holder.get().key().location().toString().contains("stronghold"))
+        if (holder.isPresent() && holder.get().key().identifier().toString().contains("stronghold"))
         {
             final List<StructurePiece> pieces = new ArrayList<>(structureStart.getPieces());
 
@@ -556,15 +578,16 @@ public class RespawnManager
               level.getChunkSource().getGenerator(),
               level.getRandom(),
               new BoundingBox(chunPos.getMinBlockX(),
-                level.getMinBuildHeight(),
+                  level.getMinY(),
                 chunPos.getMinBlockZ(),
                 chunPos.getMaxBlockX(),
-                level.getMaxBuildHeight(),
+                  level.getMaxY(),
                 chunPos.getMaxBlockZ()),
               chunPos);
-            level.getChunk(chunPos.x, chunPos.z).postProcessGeneration();
+            level.getChunk(chunPos.x(), chunPos.z()).postProcessGeneration(level);
 
-            final ClientboundLevelChunkWithLightPacket packet = new ClientboundLevelChunkWithLightPacket(level.getChunk(chunPos.x, chunPos.z), level.getLightEngine(), null, null);
+            final ClientboundLevelChunkWithLightPacket packet =
+                new ClientboundLevelChunkWithLightPacket(level.getChunk(chunPos.x(), chunPos.z()), level.getLightEngine(), null, null);
             for (final ServerPlayer player : level.getChunkSource().chunkMap.getPlayers(chunPos, false))
             {
                 player.connection.send(packet);
@@ -724,8 +747,8 @@ public class RespawnManager
                     toEnchantItem,
                     respawnDifficulty,
                     entity.level().registryAccess(),
-                    entity.level().registryAccess().registryOrThrow(Registries.ENCHANTMENT)
-                        .getTag(EnchantmentTags.ON_RANDOM_LOOT));
+                    entity.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
+                        .get(EnchantmentTags.ON_RANDOM_LOOT));
                 entity.setDropChance(enchantItemSlot, 0.3f);
             }
 
@@ -740,12 +763,12 @@ public class RespawnManager
         }
     }
 
-    private static List<Holder<MobEffect>> randomEffects = List.of(MobEffects.DAMAGE_RESISTANCE,
+    private static List<Holder<MobEffect>> randomEffects = List.of(MobEffects.RESISTANCE,
       MobEffects.FIRE_RESISTANCE,
       MobEffects.REGENERATION,
-      MobEffects.DAMAGE_BOOST,
+        MobEffects.STRENGTH,
         MobEffects.WATER_BREATHING,
       MobEffects.ABSORPTION,
       MobEffects.DARKNESS,
-      MobEffects.JUMP);
+        MobEffects.JUMP_BOOST);
 }

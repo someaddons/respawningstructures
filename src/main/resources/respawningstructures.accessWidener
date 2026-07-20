@@ -1,4 +1,4 @@
-accessWidener   v2  named
+accessWidener   v2  official
 accessible field net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces$MonsterThrone hasPlacedSpawner Z
 accessible field net/minecraft/world/level/levelgen/structure/structures/StrongholdPieces$PortalRoom hasPlacedSpawner Z
 accessible field net/minecraft/world/level/levelgen/structure/structures/StrongholdPieces$ChestCorridor hasPlacedChest Z
