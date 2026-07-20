@@ -38,7 +38,7 @@ public abstract class LootTriggerMixin extends BaseContainerBlockEntity implemen
     {
         if (newTable == null && lootTable != null && level != null && !level.isClientSide())
         {
-            RespawnManager.onChestLooted((ServerLevel) level, lootTable.location(), this.worldPosition);
+            RespawnManager.onChestLooted((ServerLevel) level, lootTable.identifier(), this.worldPosition);
         }
     }
 }

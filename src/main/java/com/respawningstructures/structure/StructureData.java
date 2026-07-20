@@ -9,7 +9,7 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.structure.Structure;
@@ -23,7 +23,7 @@ public class StructureData
     /**
      * Empty dummy used for "No structure found" at a given pos
      */
-    public static final StructureData EMPTY = new StructureData(BlockPos.ZERO, ResourceLocation.fromNamespaceAndPath("dummy", "dummy"));
+    public static final StructureData EMPTY = new StructureData(BlockPos.ZERO, Identifier.fromNamespaceAndPath("dummy", "dummy"));
 
     /**
      * Static version to handle potential upgrade conflicts easily
@@ -38,7 +38,7 @@ public class StructureData
     /**
      * The structure resource location ID
      */
-    public final ResourceLocation id;
+    public final Identifier id;
 
     /**
      * Temporary Structure start reference
@@ -81,7 +81,7 @@ public class StructureData
      */
     public int respawns = 0;
 
-    public StructureData(final BlockPos pos, final ResourceLocation id)
+    public StructureData(final BlockPos pos, final Identifier id)
     {
         this.pos = SectionPos.of(pos);
         this.id = id;
@@ -126,35 +126,35 @@ public class StructureData
 
     public StructureData(final CompoundTag tag)
     {
-        final int version = tag.getInt("version");
-        pos = SectionPos.of(tag.getInt("posx"), tag.getInt("posy"), tag.getInt("posz"));
-        id = ResourceLocation.tryParse(tag.getString("id"));
-        spawnerActivations = tag.getInt("spawnerActivations");
-        bbSize = tag.getInt("bbSize");
-        disabledRespawn = tag.getBoolean("disabledRespawn");
-        spawnerBreak = tag.getInt("spawnerBreak");
-        portalUsage = tag.getInt("portalUsage");
-        containerLooted = tag.getInt("containerLooted");
-        lightsPlaced = tag.getInt("lightsPlaced");
+        final int version = tag.getIntOr("version", 0);
+        pos = SectionPos.of(tag.getIntOr("posx", 0), tag.getIntOr("posy", 0), tag.getIntOr("posz", 0));
+        id = Identifier.tryParse(tag.getStringOr("id", "dummy:dummy"));
+        spawnerActivations = tag.getIntOr("spawnerActivations", 0);
+        bbSize = tag.getIntOr("bbSize", 0);
+        disabledRespawn = tag.getBooleanOr("disabledRespawn", false);
+        spawnerBreak = tag.getIntOr("spawnerBreak", 0);
+        portalUsage = tag.getIntOr("portalUsage", 0);
+        containerLooted = tag.getIntOr("containerLooted", 0);
+        lightsPlaced = tag.getIntOr("lightsPlaced", 0);
         if (tag.contains("redstonePlaced"))
         {
-            redstonePlaced = tag.getInt("redstonePlaced");
+            redstonePlaced = tag.getIntOr("redstonePlaced", 0);
         }
         if (tag.contains("blockEntities"))
         {
-            blockEntities = tag.getInt("blockEntities");
+            blockEntities = tag.getIntOr("blockEntities", 0);
         }
         if (tag.contains("inhabitedStart"))
         {
-            inhabitedStart = tag.getLong("inhabitedStart");
+            inhabitedStart = tag.getLongOr("inhabitedStart", 0);
         }
 
-        blocksPlaced = tag.getInt("blocksPlaced");
-        blocksBroken = tag.getInt("blocksBroken");
-        mobsKilled = tag.getInt("mobsKilled");
-        playerDeaths = tag.getInt("playerDeaths");
-        respawns = tag.getInt("respawns");
-        lastActivity = tag.getLong("lastActivity");
+        blocksPlaced = tag.getIntOr("blocksPlaced", 0);
+        blocksBroken = tag.getIntOr("blocksBroken", 0);
+        mobsKilled = tag.getIntOr("mobsKilled", 0);
+        playerDeaths = tag.getIntOr("playerDeaths", 0);
+        respawns = tag.getIntOr("respawns", 0);
+        lastActivity = tag.getLongOr("lastActivity", 0);
     }
 
     public StructureStart fillStructureStart(final ServerLevel level)
@@ -166,7 +166,7 @@ public class StructureData
 
         for (final Map.Entry<Structure, LongSet> entry : level.structureManager().getAllStructuresAt(pos.center()).entrySet())
         {
-            if (id.equals(level.registryAccess().registry(Registries.STRUCTURE).get().getKey(entry.getKey())))
+            if (id.equals(level.registryAccess().lookupOrThrow(Registries.STRUCTURE).getKey(entry.getKey())))
             {
                 level.structureManager().fillStartsForStructure(entry.getKey(), entry.getValue(),
                     structureStart ->
@@ -232,7 +232,7 @@ public class StructureData
             return RespawnStatus.BLACKLISTED;
         }
 
-        if (lastActivity == 0 || (level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID).getLevelTime() - lastActivity)
+        if (lastActivity == 0 || (level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY).getLevelTime() - lastActivity)
             < RespawningStructures.config.getCommonConfig().minutesUntilRespawn * 60L)
         {
             if (lastActivity == 0)
@@ -258,7 +258,7 @@ public class StructureData
 
         if (status == RespawnStatus.PENDING_RESPAWN)
         {
-            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
+            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
             for (Iterator<Respawn> iterator = levelData.playerRespawnTracker.values().iterator(); iterator.hasNext(); )
             {
                 final Respawn respawnData = iterator.next();
@@ -350,7 +350,7 @@ public class StructureData
         if ((blocksPlaced * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 10000d)
             && (blocksBroken * RespawningStructures.config.getCommonConfig().blockCountMod) > 200 + (bbSize / 100000d))
         {
-            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
+            final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
             if ((levelData.getLevelTime() - lastActivity) > 60 * 60 * 24 * 60 && level.isLoaded(this.pos.center()))
             {
                 blocksPlaced = (int) (blocksPlaced * 0.99);
@@ -400,7 +400,7 @@ public class StructureData
     public Component getStats(final ServerLevel level)
     {
         int dist = Integer.MAX_VALUE;
-        final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY, RespawnLevelData.ID);
+        final RespawnLevelData levelData = level.getDataStorage().computeIfAbsent(RespawnLevelData.RESPAWNLEVELDATAFACTORY);
         for (Iterator<Respawn> iterator = levelData.playerRespawnTracker.values().iterator(); iterator.hasNext(); )
         {
             final Respawn respawnData = iterator.next();

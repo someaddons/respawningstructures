@@ -1,28 +1,32 @@
 package com.respawningstructures.structure;
 
+import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 
 import java.util.*;
 
 public class RespawnLevelData extends SavedData
 {
     public static final String ID = "respawningdungeonsdata";
-    public static SavedData.Factory<RespawnLevelData> RESPAWNLEVELDATAFACTORY = new SavedData.Factory<>(RespawnLevelData::new, RespawnLevelData::load);
+    public static final Codec<RespawnLevelData>         CODEC                   = CompoundTag.CODEC.xmap(RespawnLevelData::load, RespawnLevelData::serializeNbt);
+    public static final SavedDataType<RespawnLevelData> RESPAWNLEVELDATAFACTORY =
+        new SavedDataType<>(Identifier.withDefaultNamespace(ID), RespawnLevelData::new, CODEC);
 
     /**
      * Chunk section position to structure data matching map, multiple positions can point to the same structure
@@ -49,7 +53,7 @@ public class RespawnLevelData extends SavedData
 
     }
 
-    public static RespawnLevelData load(CompoundTag tag, HolderLookup.Provider provider)
+    public static RespawnLevelData load(CompoundTag tag)
     {
         RespawnLevelData data = new RespawnLevelData();
         data.read(tag);
@@ -58,8 +62,8 @@ public class RespawnLevelData extends SavedData
 
     public void read(CompoundTag nbt)
     {
-        elapsedTime = nbt.getLong("elapsedTime");
-        ListTag list = nbt.getList("Structures", Tag.TAG_COMPOUND);
+        elapsedTime = nbt.getLongOr("elapsedTime", elapsedTime);
+        ListTag list = nbt.getListOrEmpty("Structures");
 
         for (final Tag tag : list)
         {
@@ -73,7 +77,7 @@ public class RespawnLevelData extends SavedData
 
         if (nbt.contains("playerrespawns"))
         {
-            ListTag respawnList = nbt.getList("playerrespawns", Tag.TAG_COMPOUND);
+            ListTag respawnList = nbt.getListOrEmpty("playerrespawns");
             for (final Tag tag : respawnList)
             {
                 if (tag instanceof CompoundTag compoundTag)
@@ -85,9 +89,9 @@ public class RespawnLevelData extends SavedData
         }
     }
 
-    @Override
-    public CompoundTag save(CompoundTag nbt, HolderLookup.Provider provider)
+    public CompoundTag serializeNbt()
     {
+        CompoundTag nbt = new CompoundTag();
         nbt.putLong("elapsedTime", elapsedTime);
 
         ListTag list = new ListTag();
@@ -183,8 +187,7 @@ public class RespawnLevelData extends SavedData
         final StructureData data = structurePositions.computeIfAbsent(sectionPosLong(structureStart.getBoundingBox().getCenter()), (p) -> {
             StructureData newData = new StructureData(structureStart.getBoundingBox().getCenter(),
               level.registryAccess()
-                .registry(Registries.STRUCTURE)
-                .get()
+                  .lookupOrThrow(Registries.STRUCTURE)
                 .getKey(structureStart.getStructure()));
 
             newData.inhabitedStart = level.getChunk(newData.pos.x(), newData.pos.z()).getInhabitedTime();
@@ -221,10 +224,10 @@ public class RespawnLevelData extends SavedData
     {
         Map<Structure, LongSet> structures = null;
 
-        final ChunkPos start = new ChunkPos(pos);
+        final ChunkPos start = ChunkPos.containing(pos);
 
         for (final Map.Entry<Structure, LongSet> entry : level.structureManager()
-          .getAllStructuresAt(new BlockPos((start.x) << 4, 0, (start.z) << 4))
+            .getAllStructuresAt(new BlockPos((start.x()) << 4, 0, (start.z()) << 4))
           .entrySet())
         {
             if (structures == null)
@@ -245,13 +248,13 @@ public class RespawnLevelData extends SavedData
                         continue;
                     }
 
-                    if (!level.hasChunk(start.x + x, start.z + z))
+                    if (!level.hasChunk(start.x() + x, start.z() + z))
                     {
                         continue;
                     }
 
                     for (final Map.Entry<Structure, LongSet> entry : level.structureManager()
-                      .getAllStructuresAt(new BlockPos((start.x + x) << 4, 0, (start.z + z) << 4))
+                        .getAllStructuresAt(new BlockPos((start.x() + x) << 4, 0, (start.z() + z) << 4))
                       .entrySet())
                     {
                         if (structures == null)

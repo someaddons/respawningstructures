@@ -2,14 +2,9 @@ package com.respawningstructures.mixin;
 
 import com.respawningstructures.structure.RespawnManager;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.chunk.UpgradeData;
+import net.minecraft.world.level.chunk.*;
 import net.minecraft.world.level.levelgen.blending.BlendingData;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,7 +21,7 @@ public abstract class LevelChunkPostProcessMixin extends ChunkAccess
       final ChunkPos p_187621_,
       final UpgradeData p_187622_,
       final LevelHeightAccessor p_187623_,
-      final Registry<Biome> p_187624_,
+        final PalettedContainerFactory p_187624_,
       final long p_187625_,
       @Nullable final LevelChunkSection[] p_187626_,
       @Nullable final BlendingData p_187627_)

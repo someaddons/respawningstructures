@@ -1,6 +1,7 @@
 package com.respawningstructures.structure;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 
@@ -32,13 +33,15 @@ public class Respawn
 
     public Respawn(final CompoundTag tag)
     {
-        this(tag.getUUID("playerUUID"), new BlockPos(tag.getInt("x"), tag.getInt("y"), tag.getInt("z")), tag.getLong("lastUsageLevelTime"));
+        this(UUIDUtil.uuidFromIntArray(tag.getIntArray("playerUUID").orElse(UUIDUtil.uuidToIntArray(new UUID(0L, 0L)))),
+            new BlockPos(tag.getIntOr("x", 0), tag.getIntOr("y", 0), tag.getIntOr("z", 0)),
+            tag.getLongOr("lastUsageLevelTime", 0L));
     }
 
     public Tag toNbt()
     {
         CompoundTag tag = new CompoundTag();
-        tag.putUUID("playerUUID", playerUUID);
+        tag.putIntArray("playerUUID", UUIDUtil.uuidToIntArray(playerUUID));
         tag.putLong("lastUsageLevelTime", lastUsageLevelTime);
         tag.putInt("x", position.getX());
         tag.putInt("y", position.getY());

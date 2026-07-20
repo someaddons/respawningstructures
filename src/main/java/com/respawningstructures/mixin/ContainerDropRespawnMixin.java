@@ -51,14 +51,14 @@ public class ContainerDropRespawnMixin
             {
                 if (((RandomizableContainerBlockEntity) container).getLootTable() != null)
                 {
-                    RespawnManager.onChestLooted((ServerLevel) level, ((RandomizableContainerBlockEntity) container).getLootTable().location(), BlockPos.containing(x, y, z));
+                    RespawnManager.onChestLooted((ServerLevel) level, ((RandomizableContainerBlockEntity) container).getLootTable().identifier(), BlockPos.containing(x, y, z));
                 }
             }
             else if (container instanceof ContainerEntity)
             {
-                if (((ContainerEntity) container).getLootTable() != null)
+                if (((ContainerEntity) container).getContainerLootTable() != null)
                 {
-                    RespawnManager.onChestLooted((ServerLevel) level, ((ContainerEntity) container).getLootTable().location(), BlockPos.containing(x, y, z));
+                    RespawnManager.onChestLooted((ServerLevel) level, ((ContainerEntity) container).getContainerLootTable().identifier(), BlockPos.containing(x, y, z));
                 }
             }
         }
