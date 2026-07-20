@@ -29,9 +29,9 @@ public class GravityProcessorMixin
         final LevelReader levelReader,
         final BlockPos p_74110_,
         final BlockPos p_74111_,
+        final BlockPos templateRelativePos,
         final StructureTemplate.StructureBlockInfo relativeInfo,
-        final StructureTemplate.StructureBlockInfo p_74113_,
-        final StructurePlaceSettings p_74114_,
+        final StructurePlaceSettings settings,
         final CallbackInfoReturnable<StructureTemplate.StructureBlockInfo> cir)
     {
         StructureTemplate.StructureBlockInfo result = cir.getReturnValue();

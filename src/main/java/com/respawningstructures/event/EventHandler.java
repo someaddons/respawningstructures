@@ -20,6 +20,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
@@ -132,7 +133,7 @@ public class EventHandler
     }
 
     @SubscribeEvent
-    public static void onBlockBreak(BlockEvent.BreakEvent event)
+    public static void onBlockBreak(BreakBlockEvent event)
     {
         if (event.getPlayer() instanceof ServerPlayer)
         {

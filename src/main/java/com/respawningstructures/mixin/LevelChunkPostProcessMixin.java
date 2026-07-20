@@ -30,7 +30,7 @@ public abstract class LevelChunkPostProcessMixin extends ChunkAccess
     }
 
     @Override
-    public void markPosForPostprocessing(BlockPos pos)
+    public void markPosForPostProcessing(BlockPos pos)
     {
         if (RespawnManager.respawnInProgress != null)
         {
