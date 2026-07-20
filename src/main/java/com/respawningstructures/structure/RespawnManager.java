@@ -389,7 +389,7 @@ public class RespawnManager
             {
                 for (int x = chunkPosMin.x; x <= chunkPosMax.x; x++)
                 {
-                    for (int z = chunkPosMax.z; z <= chunkPosMax.z; z++)
+                    for (int z = chunkPosMin.z; z <= chunkPosMax.z; z++)
                     {
                         if (!level.hasChunk(x, z))
                         {
@@ -416,15 +416,6 @@ public class RespawnManager
                 return false;
             }
         }
-
-        if (RespawningStructures.config.getCommonConfig().logRespawns)
-        {
-            RespawningStructures.LOGGER.info(
-                "Respawning structure: " + structureData.id + " at: " + structureData.pos.origin() + " stats: " + structureData.getStats(level).getString());
-        }
-
-        respawnInProgress = structureData;
-        respawnData.setDirty();
 
         List<Entity> entities = level.getEntitiesOfClass(Entity.class,
           new AABB(boundingbox.minX(), boundingbox.minY(), boundingbox.minZ(), boundingbox.maxX(), boundingbox.maxY(), boundingbox.maxZ()).inflate(20));
@@ -505,6 +496,15 @@ public class RespawnManager
                 ((IRemembersPositionPiece) piece).setRespawnTemplatePos(((TemplateStructurePiece) piece).templatePosition());
             }
         }
+
+        if (RespawningStructures.config.getCommonConfig().logRespawns)
+        {
+            RespawningStructures.LOGGER.info(
+                "Respawning structure: " + structureData.id + " at: " + structureData.pos.origin() + " stats: " + structureData.getStats(level).getString());
+        }
+
+        respawnInProgress = structureData;
+        respawnData.setDirty();
 
         Registry<Structure> structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
         Optional<Holder.Reference<Structure>> holder = structureRegistry.getHolder(structureRegistry.getId(structureStart.getStructure()));
