@@ -24,6 +24,9 @@ public abstract class EntityLootTriggerMixin extends AbstractMinecart
         super(p_38087_, p_38088_);
     }
 
+    // Vanilla clears the loot table immediately before generating its contents.
+    // Destruction may also be detected by ContainerDropRespawnMixin; duplicate detection is
+    // intentionally tolerated so container loot cannot go unnoticed.
     @Inject(method = "setLootTable(Lnet/minecraft/resources/ResourceLocation;)V", at = @At("HEAD"))
     private void onUnpack(final ResourceLocation newTable, final CallbackInfo ci)
     {
