@@ -23,7 +23,7 @@ public abstract class LootTriggerMixin extends BaseContainerBlockEntity implemen
 {
     @Shadow
     @Nullable
-    protected ResourceKey<LootTable> lootTable;
+    public ResourceKey<LootTable> lootTable;
 
     protected LootTriggerMixin(
         final BlockEntityType<?> p_155076_,
