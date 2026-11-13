@@ -142,7 +142,7 @@ if (uploaderScript.isFile()) {
 }
 
 curseForgeUploader.putAll([
-        minecraftVersions: ['26.2', '26.3'],
-        loaders          : ['NeoForge'],
+        minecraftVersions: ['26.1', '26.1.1', '26.1.2'],
+        loaders          : ['Fabric'],
         server           : true,
 ])
