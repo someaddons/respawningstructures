@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LootTriggerMixin extends BaseContainerBlockEntity implements RandomizableContainer
 {
     @Shadow
-    protected ResourceKey<LootTable> lootTable;
+    public ResourceKey<LootTable> lootTable;
 
     protected LootTriggerMixin(
         final BlockEntityType<?> p_155076_,
