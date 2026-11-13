@@ -148,6 +148,11 @@ public class RespawnLevelData extends SavedData
 
         if (alreadyContainedAtPos != null)
         {
+            if (!checkBlockInsidePiecesOrCenter(level, alreadyContainedAtPos, pos))
+            {
+                return null;
+            }
+
             if (update)
             {
                 alreadyContainedAtPos.setLastModifiedTime(elapsedTime);
@@ -202,11 +207,47 @@ public class RespawnLevelData extends SavedData
         // Dirty on access since values change
         setDirty(true);
         data.setStructureStart(structureStart);
+
+        if (!checkBlockInsidePiecesOrCenter(level, data, pos))
+        {
+            return null;
+        }
+
         if (update)
         {
             data.setLastModifiedTime(elapsedTime);
         }
         return data;
+    }
+
+    /**
+     * Checks if the real position is actually inside a structues pieces
+     * @param level
+     * @param alreadyContainedAtPos
+     * @param pos
+     * @return
+     */
+    private boolean checkBlockInsidePiecesOrCenter(final ServerLevel level, final StructureData alreadyContainedAtPos, final BlockPos pos)
+    {
+        final StructureStart structureStart = alreadyContainedAtPos.fillStructureStart(level);
+        if (structureStart == null)
+        {
+            return false;
+        }
+
+        if (structureStart.getBoundingBox().getCenter().equals(pos))
+        {
+            return true;
+        }
+
+        for (final StructurePiece piece : structureStart.getPieces())
+        {
+            if (piece.getBoundingBox().isInside(pos))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static long sectionPosLong(final BlockPos pos)
@@ -280,19 +321,30 @@ public class RespawnLevelData extends SavedData
             level.structureManager().fillStartsForStructure(structureEntry.getKey(), structureEntry.getValue(),
               structureStart ->
               {
+                  if (closest[0] == null)
+                  {
+                      closest[0] = structureStart;
+                  }
+
                   if (pos.equals(structureStart.getBoundingBox().getCenter()))
                   {
-                      if (closest[0] == null || closest[0].getBoundingBox().getCenter().distSqr(pos) > structureStart.getBoundingBox().getCenter().distSqr(pos))
-                      {
-                          closest[0] = structureStart;
-                      }
+                      closest[0] = structureStart;
                   }
 
                   for (final StructurePiece piece : structureStart.getPieces())
                   {
                       if (piece != null && piece.getBoundingBox().isInside(pos))
                       {
-                          if (closest[0] == null || closest[0].getBoundingBox().getCenter().distSqr(pos) > structureStart.getBoundingBox().getCenter().distSqr(pos))
+                          boolean currentClosestAlsoInside = false;
+                          for (final StructurePiece currentClosestPiece : closest[0].getPieces())
+                          {
+                              if (currentClosestPiece.getBoundingBox().isInside(pos))
+                              {
+                                  currentClosestAlsoInside = true;
+                              }
+                          }
+
+                          if (!currentClosestAlsoInside || closest[0].getBoundingBox().getCenter().distSqr(pos) > structureStart.getBoundingBox().getCenter().distSqr(pos))
                           {
                               closest[0] = structureStart;
                           }
