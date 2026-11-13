@@ -100,4 +100,6 @@ curseForgeUploader.putAll([
         minecraftVersions: ['1.21.1'],
         loaders          : ['Fabric'],
         server           : true,
+        dependencyProjects: ['fabric'  : 306612,
+                             'cupboard': 326652],
 ])
