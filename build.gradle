@@ -145,4 +145,5 @@ curseForgeUploader.putAll([
         minecraftVersions: ['26.1', '26.1.1', '26.1.2'],
         loaders          : ['Fabric'],
         server           : true,
+        dependencyProjects: ['fabric-api': 306612],
 ])
