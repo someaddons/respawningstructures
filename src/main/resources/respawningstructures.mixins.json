@@ -6,6 +6,7 @@
   "mixins": [
     "AddEntityEvent",
     "BlockPlacedMixin",
+    "BuriedTreasureChestRespawnFix",
     "ChunkSetStartBBFix",
     "ContainerDropRespawnMixin",
     "EntityLootTriggerMixin",
