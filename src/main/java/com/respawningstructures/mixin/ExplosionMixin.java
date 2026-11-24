@@ -3,8 +3,8 @@ package com.respawningstructures.mixin;
 import com.respawningstructures.structure.IExplosionPosition;
 import com.respawningstructures.structure.RespawnManager;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Explosion;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerExplosion;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Final;
@@ -22,7 +22,7 @@ public abstract class ExplosionMixin implements IExplosionPosition
 {
     @Shadow
     @Final
-    private Level level;
+    private ServerLevel level;
 
     @Shadow
     public abstract Vec3 center();
