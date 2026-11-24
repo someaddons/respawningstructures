@@ -5,6 +5,7 @@
   "refmap": "respawningstructures.refmap.json",
   "mixinPriority": 200,
   "mixins": [
+    "BuriedTreasureChestRespawnFix",
     "ChunkSetStartBBFix",
     "ContainerDropRespawnMixin",
     "EndPortalMixin",
